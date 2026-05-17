@@ -12,16 +12,19 @@ const S = {
   mbox: { background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, padding:32, width:'100%', maxWidth:520, maxHeight:'85vh', overflowY:'auto' },
 };
 
+function Field({ label, k, type='text', rows, value, onChange }) {
+  return (
+    <div style={S.field}>
+      <label style={S.label}>{label}</label>
+      {rows ? <textarea rows={rows} value={value} onChange={e => onChange(k, e.target.value)} style={{resize:'vertical'}} />
+        : <input type={type} value={value} onChange={e => onChange(k, e.target.value)} />}
+    </div>
+  );
+}
+
 function ObraForm({ inicial, onSave, onCancel }) {
   const [f, setF] = useState(inicial || { nome:'', cliente:'', endereco:'', responsavel:'', dataInicio:'', descricao:'' });
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const Field = ({ label, k, type='text', rows }) => (
-    <div style={S.field}>
-      <label style={S.label}>{label}</label>
-      {rows ? <textarea rows={rows} value={f[k]} onChange={e => set(k, e.target.value)} style={{resize:'vertical'}} />
-        : <input type={type} value={f[k]} onChange={e => set(k, e.target.value)} />}
-    </div>
-  );
   return (
     <div style={S.modal}>
       <div style={S.mbox}>
@@ -31,12 +34,12 @@ function ObraForm({ inicial, onSave, onCancel }) {
           </h3>
           <button style={{background:'none',border:'none',color:'var(--text-muted)'}} onClick={onCancel}><X size={20}/></button>
         </div>
-        <Field label="Nome da obra *" k="nome" />
-        <Field label="Cliente / Empresa" k="cliente" />
-        <Field label="Endereço" k="endereco" />
-        <Field label="Responsável técnico" k="responsavel" />
-        <Field label="Data de início" k="dataInicio" type="date" />
-        <Field label="Descrição" k="descricao" rows={3} />
+        <Field label="Nome da obra *" k="nome" value={f.nome} onChange={set} />
+        <Field label="Cliente / Empresa" k="cliente" value={f.cliente} onChange={set} />
+        <Field label="Endereço" k="endereco" value={f.endereco} onChange={set} />
+        <Field label="Responsável técnico" k="responsavel" value={f.responsavel} onChange={set} />
+        <Field label="Data de início" k="dataInicio" type="date" value={f.dataInicio} onChange={set} />
+        <Field label="Descrição" k="descricao" rows={3} value={f.descricao} onChange={set} />
         <div style={{display:'flex',gap:10,marginTop:8}}>
           <button style={S.btn(true)} onClick={() => f.nome.trim() && onSave(f)}>Salvar</button>
           <button style={S.btn(false)} onClick={onCancel}>Cancelar</button>

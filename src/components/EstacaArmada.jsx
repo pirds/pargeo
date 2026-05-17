@@ -26,6 +26,19 @@ const Field = ({ label, k, type='number', value, onChange, children, unit }) => 
 );
 
 // ── ABA A ─────────────────────────────────────────────────────────
+function Row({ label, calc, min, usado, adotado }) {
+  const ok = adotado !== undefined ? adotado >= usado : true;
+  return (
+    <tr>
+      <td style={S.tdl}>{label}</td>
+      <td style={S.td}>{calc?.toFixed(2)}</td>
+      <td style={S.td}>{min?.toFixed(2)}</td>
+      <td style={{...S.td, fontWeight:700, color:'var(--accent)'}}>{usado?.toFixed(2)}</td>
+      {adotado !== undefined && <td style={{...S.td, ...(ok ? S.ok : S.warn)}}>{adotado?.toFixed(2)} {ok ? '✓' : '✗'}</td>}
+    </tr>
+  );
+}
+
 function AbaA({ session, obraAtiva }) {
   const [f, setF] = useState({
     da:35, db:45, comprimento:12, Nc:50, atrito_lat:0, Nt:0, M:100, H:2,
@@ -48,19 +61,6 @@ function AbaA({ session, obraAtiva }) {
     const entry = { id: Date.now().toString(), nome: f.nome || `Estaca Ø${f.db}cm`, data: new Date().toISOString(), entrada: f, resultados: res };
     setCalculosArmada(obraAtiva.id, [...lista, entry]);
     alert('Salvo!');
-  };
-
-  const Row = ({ label, calc, min, usado, adotado }) => {
-    const ok = adotado !== undefined ? adotado >= usado : true;
-    return (
-      <tr>
-        <td style={S.tdl}>{label}</td>
-        <td style={S.td}>{calc?.toFixed(2)}</td>
-        <td style={S.td}>{min?.toFixed(2)}</td>
-        <td style={{...S.td, fontWeight:700, color:'var(--accent)'}}>{usado?.toFixed(2)}</td>
-        {adotado !== undefined && <td style={{...S.td, ...(ok ? S.ok : S.warn)}}>{adotado?.toFixed(2)} {ok ? '✓' : '✗'}</td>}
-      </tr>
-    );
   };
 
   return (
