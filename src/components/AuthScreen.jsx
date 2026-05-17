@@ -46,13 +46,7 @@ export default function AuthScreen({ onLogin }) {
     onLogin({ userId: novo.id, nome: novo.nome, email: novo.email });
   }
 
-  const Field = ({ label, k, type='text', placeholder='' }) => (
-    <div style={S.field}>
-      <label style={S.label}>{label}</label>
-      <input type={type} placeholder={placeholder} value={form[k]} onChange={e => set(k, e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') mode === 'login' ? login() : cadastrar(); }} />
-    </div>
-  );
+  const onKey = (e) => { if (e.key === 'Enter') mode === 'login' ? login() : cadastrar(); };
 
   return (
     <div style={S.wrap}>
@@ -65,11 +59,32 @@ export default function AuthScreen({ onLogin }) {
 
         {err && <div style={S.err}><AlertCircle size={16}/>{err}</div>}
 
-        {mode === 'cadastro' && <Field label="Nome completo" k="nome" placeholder="Eng. João Silva" />}
-        <Field label="E-mail" k="email" type="email" placeholder="email@exemplo.com" />
-        {mode === 'cadastro' && <Field label="CREA (opcional)" k="crea" placeholder="CREA-SP 123456" />}
-        <Field label="Senha" k="senha" type="password" placeholder="••••••••" />
-        {mode === 'cadastro' && <Field label="Confirmar senha" k="confirma" type="password" placeholder="••••••••" />}
+        {mode === 'cadastro' && (
+          <div style={S.field}>
+            <label style={S.label}>Nome completo</label>
+            <input type="text" placeholder="Eng. João Silva" value={form.nome} onChange={e => set('nome', e.target.value)} onKeyDown={onKey} />
+          </div>
+        )}
+        <div style={S.field}>
+          <label style={S.label}>E-mail</label>
+          <input type="email" placeholder="email@exemplo.com" value={form.email} onChange={e => set('email', e.target.value)} onKeyDown={onKey} />
+        </div>
+        {mode === 'cadastro' && (
+          <div style={S.field}>
+            <label style={S.label}>CREA (opcional)</label>
+            <input type="text" placeholder="CREA-SP 123456" value={form.crea} onChange={e => set('crea', e.target.value)} onKeyDown={onKey} />
+          </div>
+        )}
+        <div style={S.field}>
+          <label style={S.label}>Senha</label>
+          <input type="password" placeholder="••••••••" value={form.senha} onChange={e => set('senha', e.target.value)} onKeyDown={onKey} />
+        </div>
+        {mode === 'cadastro' && (
+          <div style={S.field}>
+            <label style={S.label}>Confirmar senha</label>
+            <input type="password" placeholder="••••••••" value={form.confirma} onChange={e => set('confirma', e.target.value)} onKeyDown={onKey} />
+          </div>
+        )}
 
         <button style={S.btn} onClick={mode === 'login' ? login : cadastrar}>
           {mode === 'login' ? <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><LogIn size={16}/>Entrar</span>
