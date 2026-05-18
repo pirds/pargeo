@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { calcularArmaduraCompleto, calcularArmaduraSimples, NH_OPTIONS, PHI_OPTIONS } from '../calculos/estacaArmada';
+import { calcularEstacaArmada, calcularArmaduraSimples, NH_TABLE, PHI_OPTIONS } from '../calculos/estacaArmada';
 import { getCalculosArmada, setCalculosArmada } from '../storage';
 import { Save, Info } from 'lucide-react';
 
@@ -16,6 +16,18 @@ const S = {
   tdl: { padding:'8px 12px', fontSize:13, borderBottom:'1px solid rgba(45,74,107,0.3)', color:'var(--text-secondary)' },
   ok: { color:'var(--success)', fontWeight:700 },
   warn: { color:'var(--error)', fontWeight:700 },
+};
+
+const NH_LABELS = {
+  areia_fofa:        'Areia fofa',
+  areia_media:       'Areia medianamente compacta',
+  areia_compacta:    'Areia compacta',
+  silte_fofo:        'Silte muito fofo',
+  argila_mole:       'Argila muito mole',
+  argila_media:      'Argila média',
+  argila_rija:       'Argila rija',
+  argila_muito_rija: 'Argila muito rija',
+  argila_dura:       'Argila dura',
 };
 
 const Field = ({ label, k, type='number', value, onChange, children, unit }) => (
@@ -41,9 +53,9 @@ function Row({ label, calc, min, usado, adotado }) {
 
 function AbaA({ session, obraAtiva }) {
   const [f, setF] = useState({
-    da:35, db:45, comprimento:12, Nc:50, atrito_lat:0, Nt:0, M:100, H:2,
+    da:35, db:45, comprimento:12, Nc:50, atrito:0, Nt:0, M:100, H:2,
     fck:250, phi_long:10, n_barras:8, phi_est:8, cobrimento:5,
-    tipo_solo:'Areia medianamente (Seca)', nome:'',
+    tipo_solo:'areia_media', situacao:'seca', nome:'',
   });
   const [res, setRes] = useState(null);
 
@@ -55,7 +67,8 @@ function AbaA({ session, obraAtiva }) {
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   const calcular = () => {
-    const r = calcularArmaduraCompleto({ ...f, ...Object.fromEntries(Object.entries(f).map(([k,v]) => [k, isNaN(v) ? v : Number(v)])) });
+    const num = Object.fromEntries(Object.entries(f).map(([k,v]) => [k, isNaN(v) ? v : Number(v)]));
+    const r = calcularEstacaArmada({ ...num, tipo_solo: f.tipo_solo, situacao: f.situacao });
     setRes(r);
   };
 
@@ -81,7 +94,7 @@ function AbaA({ session, obraAtiva }) {
           <Field label="Comprimento" k="comprimento" unit="m" value={f.comprimento} onChange={set}/>
           <Field label="Carga Nc" k="Nc" unit="tf" value={f.Nc} onChange={set}/>
           <Field label="Carga Nt (tração)" k="Nt" unit="tf" value={f.Nt} onChange={set}/>
-          <Field label="Atrito lateral" k="atrito_lat" unit="tf" value={f.atrito_lat} onChange={set}/>
+          <Field label="Atrito lateral" k="atrito" unit="tf" value={f.atrito} onChange={set}/>
         </div>
         <div style={{...S.row, gridTemplateColumns:'1fr 1fr 1fr'}}>
           <Field label="Momento M" k="M" unit="kg.m" value={f.M} onChange={set}/>
@@ -104,11 +117,20 @@ function AbaA({ session, obraAtiva }) {
           </div>
           <Field label="Cobrimento" k="cobrimento" unit="cm" value={f.cobrimento} onChange={set}/>
         </div>
-        <div style={S.field}>
-          <label style={S.label}>Tipo de solo (Miche)</label>
-          <select value={f.tipo_solo} onChange={e => set('tipo_solo', e.target.value)}>
-            {NH_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
+        <div style={{...S.row, gridTemplateColumns:'2fr 1fr'}}>
+          <div style={S.field}>
+            <label style={S.label}>Tipo de solo (Miche)</label>
+            <select value={f.tipo_solo} onChange={e => set('tipo_solo', e.target.value)}>
+              {Object.keys(NH_TABLE).map(k => <option key={k} value={k}>{NH_LABELS[k] ?? k}</option>)}
+            </select>
+          </div>
+          <div style={S.field}>
+            <label style={S.label}>Situação</label>
+            <select value={f.situacao} onChange={e => set('situacao', e.target.value)}>
+              <option value="seca">Seca</option>
+              <option value="submersa">Submersa</option>
+            </select>
+          </div>
         </div>
         <div style={{display:'flex',gap:10,marginTop:4}}>
           <button style={{...S.btn('accent'), background:'var(--accent)', color:'#0f1923', border:'none', padding:'10px 28px'}} onClick={calcular}>Calcular</button>
@@ -129,10 +151,32 @@ function AbaA({ session, obraAtiva }) {
                 <th style={S.th}>As adotado (cm²)</th>
               </tr></thead>
               <tbody>
-                <Row label="Compressão" calc={res.As_comp} min={res.As_min_comp} usado={res.As_comp} adotado={res.As_adotada}/>
-                <Row label="Tração" calc={res.As_trac} min={res.As_min_trac} usado={res.As_trac}/>
-                <Row label="Momento" calc={res.As_mom} min={res.As_min_mom} usado={res.As_mom}/>
-                <Row label="Cortante (estribos)" calc={res.As_cort_min} min={res.As_cort_min} usado={res.As_cort_min}/>
+                <Row label="Compressão" calc={res.As_comp_calc} min={res.As_min_comp} usado={res.As_comp} adotado={res.As_fornecido}/>
+                <Row label="Tração" calc={res.As_trac_calc} min={res.As_min_trac} usado={res.As_trac}/>
+                <Row label="Momento" calc={res.As_mom_calc} min={res.As_min_mom} usado={res.As_mom}/>
+                <Row label="Cortante (estribos)" calc={res.As_cort_calc} min={res.As_min_cort} usado={res.As_cort}/>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={S.card}>
+            <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,margin:'0 0 12px',color:'var(--text-primary)'}}>Barras longitudinais</h3>
+            <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <tbody>
+                <tr>
+                  <td style={S.tdl}>As governante (cm²)</td>
+                  <td style={{...S.td,fontWeight:700,color:'var(--accent)'}}>{res.As_gov?.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style={S.tdl}>Nº mínimo de barras (Ø{f.phi_long}mm)</td>
+                  <td style={{...S.td,fontWeight:700,color:'var(--accent)'}}>{res.n_barras_min} barras</td>
+                </tr>
+                <tr>
+                  <td style={S.tdl}>As fornecido ({f.n_barras} barras Ø{f.phi_long}mm)</td>
+                  <td style={{...S.td,...(res.As_fornecido >= res.As_gov ? S.ok : S.warn)}}>
+                    {res.As_fornecido?.toFixed(2)} cm² {res.As_fornecido >= res.As_gov ? '✓' : '✗ INSUFICIENTE'}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -147,8 +191,8 @@ function AbaA({ session, obraAtiva }) {
                     ['λ (m⁻¹)', res.lambda],
                     ['M máx (ton.m)', res.M_max],
                     ['Prof. M máx (m)', res.z_Mmax],
-                    ['Desl. horiz. topo (cm)', res.delta_h],
-                    ['Espaç. estribos (cm)', res.espacamento_est],
+                    ['Desl. horiz. topo (cm)', res.delta],
+                    ['Espaç. estribos (cm)', res.espacamento_estribos],
                   ].map(([l, v]) => (
                     <tr key={l}>
                       <td style={S.tdl}>{l}</td>
