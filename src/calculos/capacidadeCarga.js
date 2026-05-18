@@ -169,7 +169,7 @@ export function calcularAlonso(camadas, comprimento, geo, tipo_carga, dimensao_m
 }
 
 export function calcularTodos(camadas, comprimento, geo, tipo_carga, dimensao_mm) {
-  const velloso  = calcularVelloso(camadas, comprimento, geo, tipo_carga);
+  const velloso  = calcularVelloso(camadas, { perimetro: geo.perimetro, areaPonta: geo.area_ponta }, tipo_carga);
   const aoki     = calcularAoki(camadas, comprimento, geo, tipo_carga);
   const decourt  = calcularDecourt(camadas, comprimento, geo, tipo_carga);
   const teixeira = calcularTeixeira(camadas, comprimento, geo, tipo_carga);
