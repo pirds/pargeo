@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
-import { calcularGeometria, calcularTodos } from '../calculos/capacidadeCarga';
+import { calcularTodos } from '../calculos/capacidadeCarga';
 import { getCalculosCarga, setCalculosCarga } from '../storage';
 import { Plus, Trash2, Save, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
@@ -57,9 +57,15 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
   const updateCamada = (i, k, v) => setCamadas(c => c.map((x,idx) => idx===i ? {...x,[k]:v} : x));
 
   const calcular = () => {
-    const geo = calcularGeometria(tipoSecao, Number(dimensao));
-    const res = calcularTodos(camadas, Number(comprimento), geo, tipoCarga, Number(dimensao));
-    setResultado({ geo, res });
+    const res = calcularTodos(camadas, Number(comprimento), tipoSecao, Number(dimensao));
+    const valid = METODOS.map(m => res[m]).filter(Boolean);
+    const media = valid.length ? {
+      RL:   valid.reduce((s, m) => s + m.RL,   0) / valid.length,
+      RP:   valid.reduce((s, m) => s + m.RP,   0) / valid.length,
+      Q:    valid.reduce((s, m) => s + m.Q,    0) / valid.length,
+      Qadm: valid.reduce((s, m) => s + m.Qadm, 0) / valid.length,
+    } : null;
+    setResultado({ ...res, media });
   };
 
   const salvar = () => {
@@ -69,7 +75,7 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
       id: Date.now().toString(), nome: nome || `Cálculo ${new Date().toLocaleDateString('pt-BR')}`,
       data: new Date().toISOString(),
       entrada: { dimensao, tipoSecao, comprimento, tipoCarga, camadas },
-      resultados: resultado.res,
+      resultados: { velloso: resultado.velloso, aoki: resultado.aoki, decourt: resultado.decourt, teixeira: resultado.teixeira, alonso: resultado.alonso, media: resultado.media },
     };
     const lista = [...salvos, entry];
     setCalculosCarga(obraAtiva.id, lista);
@@ -80,8 +86,8 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
   const alertasSPT = camadas.filter(c => c.spt === '0' || c.spt === 0).map(c => c.cota);
 
   const chartData = resultado ? [
-    ...METODOS.filter(m => resultado.res[m]).map((m, i) => ({ name: METODO_LABEL[m].split(' ')[0], Qadm: resultado.res[m].Qadm, fill: CORES[i] })),
-    ...(resultado.res.media ? [{ name: 'Média', Qadm: resultado.res.media.Qadm, fill:'#f59e0b' }] : []),
+    ...METODOS.filter(m => resultado[m]).map((m, i) => ({ name: METODO_LABEL[m].split(' ')[0], Qadm: resultado[m].Qadm, fill: CORES[i] })),
+    ...(resultado.media ? [{ name: 'Média', Qadm: resultado.media.Qadm, fill:'#f59e0b' }] : []),
   ] : [];
 
   const sptChart = [...camadas].sort((a,b)=>a.cota-b.cota).filter(c=>c.spt!=='').map(c=>({ cota: c.cota, spt: Number(c.spt), tipo: c.tipo }));
@@ -146,8 +152,8 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
               Geometria da seção
             </h3>
             <p style={{fontSize:13,color:'var(--text-secondary)',margin:'0 0 12px'}}>
-              Perímetro: <span style={S.mono}>{resultado.geo.perimetro.toFixed(4)} m</span> &nbsp;|&nbsp;
-              Área da ponta: <span style={S.mono}>{resultado.geo.area_ponta.toFixed(4)} m²</span>
+              Perímetro: <span style={S.mono}>{resultado.geometria.perimetro.toFixed(4)} m</span> &nbsp;|&nbsp;
+              Área da ponta: <span style={S.mono}>{resultado.geometria.areaPonta.toFixed(4)} m²</span>
             </p>
 
             <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,margin:'12px 0 12px',color:'var(--text-primary)'}}>Resultados por método</h3>
@@ -161,7 +167,7 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
               </tr></thead>
               <tbody>
                 {METODOS.map((m,i) => {
-                  const r = resultado.res[m];
+                  const r = resultado[m];
                   if (!r) return <tr key={m}><td style={S.td} colSpan={5}>{METODO_LABEL[m]} — dados insuficientes</td></tr>;
                   return (
                     <tr key={m} style={{background: i%2===0 ? 'transparent' : 'rgba(45,74,107,0.15)'}}>
@@ -173,13 +179,13 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
                     </tr>
                   );
                 })}
-                {resultado.res.media && (
+                {resultado.media && (
                   <tr style={{background:'rgba(245,158,11,0.08)',borderTop:'2px solid var(--accent)'}}>
                     <td style={{...S.td,color:'var(--accent)',fontWeight:700}}>Média</td>
-                    <td style={{...S.td,...S.mono,textAlign:'right'}}>{resultado.res.media.RL.toFixed(2)}</td>
-                    <td style={{...S.td,...S.mono,textAlign:'right'}}>{resultado.res.media.RP.toFixed(2)}</td>
-                    <td style={{...S.td,...S.mono,textAlign:'right'}}>{resultado.res.media.Q.toFixed(2)}</td>
-                    <td style={{...S.td,...S.mono,textAlign:'right',fontWeight:700,fontSize:15,color:'var(--accent)'}}>{resultado.res.media.Qadm.toFixed(2)}</td>
+                    <td style={{...S.td,...S.mono,textAlign:'right'}}>{resultado.media.RL.toFixed(2)}</td>
+                    <td style={{...S.td,...S.mono,textAlign:'right'}}>{resultado.media.RP.toFixed(2)}</td>
+                    <td style={{...S.td,...S.mono,textAlign:'right'}}>{resultado.media.Q.toFixed(2)}</td>
+                    <td style={{...S.td,...S.mono,textAlign:'right',fontWeight:700,fontSize:15,color:'var(--accent)'}}>{resultado.media.Qadm.toFixed(2)}</td>
                   </tr>
                 )}
               </tbody>
