@@ -42,15 +42,11 @@ function CamadaRow({ cam, idx, onChange, onDel }) {
 export default function CapacidadeCarga({ session, obraAtiva }) {
   const [nome, setNome] = useState('');
   const [tipoSecao, setTipoSecao] = useState('circular');
-  const [dimensao, setDimensao] = useState(400);
-  const [comprimento, setComprimento] = useState(12);
+  const [dimensao, setDimensao] = useState(450);
+  const [comprimento, setComprimento] = useState(10);
   const [tipoCarga, setTipoCarga] = useState('compressao');
   const [camadas, setCamadas] = useState([
-    { cota:1, spt:5, tipo:'ARG' },
-    { cota:3, spt:8, tipo:'ARG' },
-    { cota:6, spt:12, tipo:'ARGS' },
-    { cota:10, spt:18, tipo:'ARGS' },
-    { cota:12, spt:22, tipo:'ARE' },
+    {cota:1,spt:1,tipo:'ARE'},{cota:2,spt:4,tipo:'ARE'},{cota:3,spt:9,tipo:'ARE'},{cota:4,spt:9,tipo:'ARE'},{cota:5,spt:6,tipo:'ARE'},{cota:6,spt:9,tipo:'ARE'},{cota:7,spt:9,tipo:'ARGS'},{cota:8,spt:15,tipo:'ARGS'},{cota:9,spt:18,tipo:'ARGA'},{cota:10,spt:18,tipo:'ARGA'},{cota:11,spt:25,tipo:'ARGS'},{cota:12,spt:12,tipo:'ARGS'},{cota:13,spt:12,tipo:'ARGS'},{cota:14,spt:12,tipo:'ARGS'},{cota:15,spt:15,tipo:'ARGS'},{cota:16,spt:18,tipo:'ARGS'},{cota:17,spt:12,tipo:'ARGS'},{cota:18,spt:19,tipo:'ARGS'},{cota:19,spt:12,tipo:'ARGS'},{cota:20,spt:16,tipo:'ARGS'},{cota:21,spt:18,tipo:'ARGS'},{cota:22,spt:18,tipo:'ARGS'},{cota:23,spt:18,tipo:'ARGS'},{cota:24,spt:19,tipo:'ARGS'},{cota:25,spt:18,tipo:'ARG'},{cota:26,spt:19,tipo:'ARG'},{cota:27,spt:16,tipo:'ARG'},{cota:28,spt:18,tipo:'ARG'},{cota:29,spt:18,tipo:'ARG'},{cota:30,spt:19,tipo:'ARG'},{cota:31,spt:11,tipo:'ARG'},{cota:32,spt:32,tipo:'ARG'},{cota:33,spt:43,tipo:'ARG'},
   ]);
   const [resultado, setResultado] = useState(null);
   const [showSalvos, setShowSalvos] = useState(false);
