@@ -20,23 +20,23 @@ export function calcularGeometria(tipoSecao, dimensao) {
 }
 
 // Velloso Ci lateral por tipo
-const CI = { ARGS:0.63, ARGA:0.63, SAG:0.70, SAR:0.80, AREA:0.85, ARS:0.85, ARE:0.50, ARP:0.50, ARG:0.85 };
+const CI = { ARG:0.63, ARGA:0.63, SAG:0.70, SAR:0.80, ARGS:0.85, ARS:0.85, ARE:0.50, ARP:0.50 };
 // Velloso Cp ponta por tipo
-const CP_V = { ARGS:25, ARGA:25, SAG:30, SAR:40, AREA:45, ARS:50, ARE:60, ARP:60, ARG:25 };
+const CP_V = { ARG:25, ARGA:25, SAG:30, SAR:40, ARGS:45, ARS:50, ARE:60, ARP:60 };
 // Aoki αK lateral
-const AOKI_AK_LAT = { ARGS:0.88, ARGA:0.88, SAG:0.88, SAR:0.88, AREA:0.88, ARS:0.88, ARE:1.40, ARP:1.40, ARG:0.88 };
+const AOKI_AK_LAT = { ARG:0.88, ARGA:0.88, SAG:0.88, SAR:0.88, ARGS:0.88, ARS:0.88, ARE:1.40, ARP:1.40 };
 // Aoki K ponta (DZ — sem α)
-const AOKI_K_PONT = { ARG:22, ARGS:60, ARGA:35, SAG:23, SAR:55, AREA:60, ARS:80, ARE:100, ARP:100 };
+const AOKI_K_PONT = { ARG:22, ARGA:35, SAG:23, SAR:55, ARGS:60, ARS:80, ARE:100, ARP:100 };
 // Décourt coef lateral (1/3·β)
-const DQ_COEF_LAT = { ARG:0.40, ARGS:0.40, ARGA:0.389, SAG:0.333, SAR:0.333, AREA:0.333, ARS:0.333, ARE:0.333, ARP:0.333 };
+const DQ_COEF_LAT = { ARG:0.40, ARGA:0.389, SAG:0.333, SAR:0.333, ARGS:0.40, ARS:0.333, ARE:0.333, ARP:0.333 };
 // Décourt αK acima da ponta (=0 para ARE/ARP/AREA/ARS verificado na planilha)
-const DQ_AK_ACIMA = { ARG:9.35, ARGS:0, ARGA:9.35, SAG:9.35, SAR:9.35, AREA:0, ARS:0, ARE:0, ARP:0 };
+const DQ_AK_ACIMA = { ARG:9.35, ARGA:9.35, SAG:9.35, SAR:9.35, ARGS:0, ARS:0, ARE:0, ARP:0 };
 // Décourt αK ponta+abaixo
-const DQ_AK_ABAIXO = { ARG:10.2, ARGS:10.2, ARGA:10.2, SAG:10.2, SAR:10.2, AREA:0, ARS:0, ARE:0, ARP:0 };
+const DQ_AK_ABAIXO = { ARG:10.2, ARGA:10.2, SAG:10.2, SAR:10.2, ARGS:10.2, ARS:0, ARE:0, ARP:0 };
 // Alonso α ponta
-const ALONSO_ALPHA = { ARG:0.67, ARGS:0.67, ARGA:0.65, SAG:0.56, SAR:0.59, AREA:0.65, ARS:0.65, ARE:0.65, ARP:0.65 };
+const ALONSO_ALPHA = { ARG:0.67, ARGA:0.65, SAG:0.56, SAR:0.59, ARGS:0.67, ARS:0.65, ARE:0.65, ARP:0.65 };
 // Alonso K lateral (CR/CX por tipo)
-const ALONSO_K = { ARG:10, ARGS:10, ARGA:10, SAG:10, SAR:10, AREA:10, ARS:10, ARE:20, ARP:20 };
+const ALONSO_K = { ARG:10, ARGA:10, SAG:10, SAR:10, ARGS:10, ARS:10, ARE:20, ARP:20 };
 
 // ============================================================
 // MÉTODO 1 — P.P.C. Velloso
