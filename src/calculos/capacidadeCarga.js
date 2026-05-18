@@ -45,22 +45,45 @@ function buildCamadas(camadas, comprimento) {
   return { laterais, ponta: { ...ponta, spt: Number(ponta.spt) } };
 }
 
-export function calcularVelloso(camadas, comprimento, geo, tipo_carga) {
-  const { laterais, ponta } = buildCamadas(camadas, comprimento);
-  if (!ponta) return null;
-  const lambda_i = tipo_carga === 'compressao' ? 1 : 0;
-  const lambda_p = tipo_carga === 'compressao' ? 1 : 0;
+export function calcularVelloso(camadas, geometria, tipoCarregamento) {
+  const { perimetro, areaPonta } = geometria;
 
+  const Ci = {
+    ARG: 0.85, ARGS: 0.85, ARGA: 0.60,
+    SAG: 0.60, SAR: 0.50, AREA: 0.50,
+    ARS: 0.50, ARE: 0.50, ARP: 0.50
+  };
+  const Cp = {
+    ARG: 1.00, ARGS: 1.00, ARGA: 1.00,
+    SAG: 0.90, SAR: 0.80, AREA: 0.80,
+    ARS: 0.70, ARE: 0.70, ARP: 0.70
+  };
+
+  // Encontra a camada da ponta (última com SPT > 0)
+  const camadasValidas = camadas.filter(c => c.spt > 0);
+  if (camadasValidas.length === 0) return null;
+  const camadaPonta = camadasValidas[camadasValidas.length - 1];
+
+  // Atrito lateral (todas as camadas exceto a ponta)
   let RL = 0;
-  for (const cam of laterais) {
-    const spt_c = Math.min(cam.spt, 40);
-    const ci = VELLOSO_CI[cam.tipo] || 0.5;
-    RL += ci * spt_c * geo.perimetro * cam.delta_z * lambda_i;
+  const camadasLaterais = camadasValidas.slice(0, -1);
+  for (let i = 0; i < camadasLaterais.length; i++) {
+    const c = camadasLaterais[i];
+    const proxima = camadasValidas[i + 1];
+    const deltaZ = proxima.cota - c.cota;
+    const sptCons = Math.min(c.spt, 40);
+    const ci = Ci[c.tipo] ?? 0.50;
+    RL += ci * sptCons * perimetro * deltaZ;
   }
-  const cp = VELLOSO_CP_AB[ponta.tipo] || 0.5;
-  const RP = cp * ponta.spt * geo.area_ponta * lambda_p;
+
+  // Resistência de ponta
+  const sptPonta = Math.min(camadaPonta.spt, 40);
+  const cp = Cp[camadaPonta.tipo] ?? 0.70;
+  const RP = cp * sptPonta * areaPonta;
+
   const Q = RL + RP;
-  return { RL: +RL.toFixed(3), RP: +RP.toFixed(3), Q: +Q.toFixed(3), Qadm: +(Q/2).toFixed(3) };
+  const Qadm = Q / 2;
+  return { RL, RP, Q, Qadm };
 }
 
 export function calcularAoki(camadas, comprimento, geo, tipo_carga) {
