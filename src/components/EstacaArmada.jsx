@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { calcularArmaduraCompleto, calcularArmaduraSimples, NH_OPTIONS, PHI_OPTIONS } from '../calculos/estacaArmada';
 import { getCalculosArmada, setCalculosArmada } from '../storage';
 import { Save, Info } from 'lucide-react';
@@ -46,6 +46,11 @@ function AbaA({ session, obraAtiva }) {
     tipo_solo:'Areia medianamente (Seca)', nome:'',
   });
   const [res, setRes] = useState(null);
+
+  useEffect(() => {
+    const dim = localStorage.getItem('estaca_dimensao');
+    if (dim) setF(p => ({ ...p, db: Number(dim) / 10 }));
+  }, []);
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
