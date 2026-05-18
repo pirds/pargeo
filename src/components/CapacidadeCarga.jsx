@@ -4,8 +4,16 @@ import { calcularTodos } from '../calculos/capacidadeCarga';
 import { getCalculosCarga, setCalculosCarga } from '../storage';
 import { Plus, Trash2, Save, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
-const TIPOS_SOLO = ['ARG','ARGS','ARGA','SAG','SAR','AREA','ARS','ARE','ARP'];
-const TIPO_LABEL = { ARG:'Argila Siltosa', ARGS:'Areia c/ Pedregulhos / Areia Argilosa', ARGA:'Argila Arenosa', SAG:'Silte Argiloso', SAR:'Silte Arenoso', AREA:'Areia (genérica)', ARS:'Areia Siltosa', ARE:'Areia', ARP:'Areia c/ Pedregulhos 2' };
+const TIPOS_SOLO = [
+  { value: 'ARG',  label: 'ARG — Argila Siltosa' },
+  { value: 'ARGA', label: 'ARGA — Argila Arenosa' },
+  { value: 'SAG',  label: 'SAG — Silte Argiloso' },
+  { value: 'SAR',  label: 'SAR — Silte Arenoso' },
+  { value: 'ARGS', label: 'ARGS — Areia Argilosa' },
+  { value: 'ARS',  label: 'ARS — Areia Siltosa' },
+  { value: 'ARE',  label: 'ARE — Areia' },
+  { value: 'ARP',  label: 'ARP — Areia com Pedregulhos' },
+];
 const METODOS = ['velloso','aoki','decourt','teixeira','alonso'];
 const METODO_LABEL = { velloso:'P.P.C. Velloso', aoki:'Aoki-Velloso', decourt:'Décourt-Quaresma', teixeira:'A.H. Teixeira', alonso:'U.R. Alonso' };
 const CORES = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444'];
@@ -28,8 +36,7 @@ function CamadaRow({ cam, idx, onChange, onDel }) {
       <td style={S.td}><input type="number" min="0" max="60" value={cam.spt} onChange={e => onChange(idx,'spt',e.target.value)} style={{width:70,textAlign:'center'}} /></td>
       <td style={S.td}>
         <select value={cam.tipo} onChange={e => onChange(idx,'tipo',e.target.value)} style={{width:120}}>
-          <option value="">Selecione</option>
-          {TIPOS_SOLO.map(t => <option key={t} value={t}>{t} — {TIPO_LABEL[t]}</option>)}
+          {TIPOS_SOLO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </td>
       <td style={S.td}>
@@ -52,7 +59,7 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
   const [showSalvos, setShowSalvos] = useState(false);
   const [salvos, setSalvos] = useState(() => obraAtiva ? getCalculosCarga(obraAtiva.id) : []);
 
-  const addCamada = () => setCamadas(c => [...c, { cota: (c[c.length-1]?.cota||0)+1, spt:'', tipo:'' }]);
+  const addCamada = () => setCamadas(c => [...c, { cota: (c[c.length-1]?.cota||0)+1, spt:'', tipo:'ARE' }]);
   const delCamada = (i) => setCamadas(c => c.filter((_,idx) => idx !== i));
   const updateCamada = (i, k, v) => setCamadas(c => c.map((x,idx) => idx===i ? {...x,[k]:v} : x));
 
