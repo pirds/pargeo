@@ -57,7 +57,7 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
   const updateCamada = (i, k, v) => setCamadas(c => c.map((x,idx) => idx===i ? {...x,[k]:v} : x));
 
   const calcular = () => {
-    const res = calcularTodos(camadas, Number(comprimento), tipoSecao, Number(dimensao));
+    const res = calcularTodos(camadas, Number(comprimento), tipoSecao, Number(dimensao), tipoCarga);
     const valid = METODOS.map(m => res[m]).filter(Boolean);
     const media = valid.length ? {
       RL:   valid.reduce((s, m) => s + m.RL,   0) / valid.length,
