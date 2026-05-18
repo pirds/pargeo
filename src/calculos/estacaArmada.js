@@ -1,107 +1,197 @@
-const NH_TABLE = {
-  'Areia fofa (Seca)':           2.6,
-  'Areia fofa (Submersa)':       1.5,
-  'Areia medianamente (Seca)':   8.0,
-  'Areia medianamente (Submersa)':5.0,
-  'Areia compacta (Seca)':      20.0,
-  'Areia compacta (Submersa)':  12.5,
-  'Silte muito fofo (Seca)':     2.0,
-  'Silte muito fofo (Submersa)': 2.0,
-  'Argila muito mole':           0.55,
-  'Argila média':                0.80,
-  'Argila rija':                 5.00,
-  'Argila muito rija':          10.00,
-  'Argila dura':                19.50,
+// ============================================================
+// DIMENSIONAMENTO DE ESTACA ARMADA
+// Fórmulas validadas da planilha Excel original
+// Referência (db=45cm, da=35cm, L=12m, Nc=50tf, H=2tf, M=100kgm):
+//   As gov comp = 6.36 cm²
+//   As min cort = 4.45 cm²
+//   lambda = 1.3951 m⁻¹
+//   delta = 0.3237 cm
+//   M_max = 2.3144 tf.m
+//   z_Mmax = 1.8415 m
+// ============================================================
+
+// TABELA nh por tipo de solo e situação (MN/m³)
+// CK..CL por tipo: CJ=4→nh seca, CJ=6→nh submersa
+export const NH_TABLE = {
+  'areia_fofa':        { seca: 2.6,  submersa: 1.5  },
+  'areia_media':       { seca: 8.0,  submersa: 5.0  },
+  'areia_compacta':    { seca: 20.0, submersa: 12.5 },
+  'silte_fofo':        { seca: 2.0,  submersa: 2.0  },
+  'argila_mole':       { seca: 0.55, submersa: 0.55 },
+  'argila_media':      { seca: 0.80, submersa: 0.80 },
+  'argila_rija':       { seca: 5.00, submersa: 5.00 },
+  'argila_muito_rija': { seca: 10.0, submersa: 10.0 },
+  'argila_dura':       { seca: 19.5, submersa: 19.5 },
 };
 
-export const NH_OPTIONS = Object.keys(NH_TABLE);
-
-const PESO_LINEAR = {
-  5:0.1963, 6:0.2827, 6.3:0.3117, 7:0.3848, 8:0.5027,
-  9.5:0.7088, 10:0.7854, 12.5:1.2272, 16:2.0106, 20:3.1416,
-  22:3.8013, 25:4.9087, 32:8.0425, 40:12.5664,
+// TABELA de pesos lineares por diâmetro (kg/m)
+export const PESO_BARRA = {
+  5: 0.1963, 6: 0.2827, 6.3: 0.3117, 7: 0.3848,
+  8: 0.5027, 9.5: 0.7088, 10: 0.7854, 12.5: 1.2272,
+  16: 2.0106, 20: 3.1416, 22: 3.8013, 25: 4.9087,
+  32: 8.0425, 40: 12.5664
 };
 
-export const PHI_OPTIONS = Object.keys(PESO_LINEAR).map(Number);
-
-export function getPesoLinear(phi) {
-  return PESO_LINEAR[phi] || PESO_LINEAR[10];
+// TABELA espaçamento estribos (DC35→DC36→DC38)
+// DC35 = DD33/DA18 = As_min_cort / (phi_long²/4×PI/100)
+// DC36 = ROUND(DC35, 0) = número de estribos por m
+// DC38 = ((100-(DC36×phi_est/10))/DC36)×2 = espaçamento em cm
+export function calcularEspacamentoEstribos(db, phi_long, phi_est) {
+  const DA18 = ((phi_long * phi_long) / 4) * Math.PI / 100; // área 1 barra long (cm²)
+  const DD33 = 0.14 * 0.707106781 * db;                      // As min cortante
+  const DC35 = DD33 / DA18;
+  const DC36 = Math.round(DC35);
+  const DC38 = ((100 - (DC36 * phi_est / 10)) / DC36) * 2;
+  return { DC36, DC38: Math.max(DC38, 5) };
 }
 
-export function calcularArmaduraCompleto(p) {
-  const { db, da, comprimento, Nc, Nt, M, H, fck, phi_long, n_barras, phi_est, cobrimento, tipo_solo } = p;
+// FUNÇÃO PRINCIPAL DE CÁLCULO
+export function calcularEstacaArmada(params) {
+  const {
+    da,           // cobrimento ao centro da barra (cm)
+    db,           // diâmetro da estaca (cm)
+    comprimento,  // comprimento total (m)
+    Nc,           // carga de compressão (tf)
+    atrito,       // atrito lateral da fundação (tf)
+    Nt,           // carga de tração (tf)
+    M,            // momento (kgm)
+    H,            // carga horizontal (tf)
+    fck,          // resistência característica (kg/cm²)
+    phi_long,     // diâmetro barra longitudinal (mm)
+    n_barras,     // número de barras longitudinais
+    phi_est,      // diâmetro dos estribos (mm)
+    cobrimento,   // cobrimento nominal (cm)
+    tipo_solo,    // chave do NH_TABLE
+    situacao,     // 'seca' ou 'submersa'
+  } = params;
 
-  const fcd = fck / 5;      // γc=5
-  const fyd = 4200;         // CA-50
+  // Parâmetros de resistência
+  const fcd = fck / 5;       // DG20 = T12/DF29
+  const fyd = 4200;          // CA-50
 
-  // Área da seção
-  const DI20 = (Math.pow(db, 2) / 4) * Math.PI;
+  // Geometria
+  const Ac = ((db * db) / 4) * Math.PI;       // DI20 (cm²)
+  const ddb = da / db;                          // DI41 = da/db
 
-  // Armadura de compressão
+  // ── AS DE COMPRESSÃO ──────────────────────────────────────
+  // DJ20 = 1.4×Nc×1000×(1+6/db)
+  // DK20 = 0.85×Ac×fcd
+  // DL20 = (DJ20-DK20)/fyd
   const DJ20 = 1.4 * (Nc * 1000) * (1 + 6 / db);
-  const DK20 = 0.85 * DI20 * fcd;
-  const DL20 = (DJ20 - DK20) / fyd;
-  const DL22 = Math.max(DL20, 0);
-  const As_min_comp = DI20 * 0.004;
-  const As_comp = Math.max(DL22, As_min_comp);
+  const DK20 = 0.85 * Ac * fcd;
+  const As_comp_calc = Math.max((DJ20 - DK20) / fyd, 0);  // DL22
+  const As_min_comp  = Ac * 0.004;                          // DL25
+  const As_comp      = Math.max(As_comp_calc, As_min_comp); // DL26
 
-  // Armadura de tração
-  const As_min_trac = DI20 * 0.004;
-  const DL35 = (1.4 * Nt * 1000) / fyd;
-  const As_trac = Nt > 0 ? Math.max(DL35, As_min_trac) : 0;
+  // ── AS DE TRAÇÃO ──────────────────────────────────────────
+  // DL35 = (1.4×Nt×1000)/fyd
+  const As_trac_calc = Nt > 0 ? (1.4 * Nt * 1000) / fyd : 0;
+  const As_min_trac  = Nt > 0 ? Ac * 0.004 : 0;
+  const As_trac      = Math.max(As_trac_calc, As_min_trac);
 
-  // Armadura de momento
-  const As_min_mom = DI20 * 0.0015;
-  const DB36 = Nt > 0 ? ((1.4 * Nt) / Math.pow(db * 0.707106781, 2)) * 100 : 0;
-  const As_mom = Math.max(DB36, As_min_mom);
+  // ── AS DE MOMENTO ─────────────────────────────────────────
+  // DK42 = (1.4×H) / ((db/10)³ × fcd) × 100  [db em dm]
+  // DJ47 = 4.667 (tabela interpolação para da/db ≤ 0.8)
+  // DK44 = DJ47 × DK42
+  // DK47 = (DK44 × Ac × fcd) / fyd
+  // DK48 = Ac × 0.0015
+  const DK42 = (1.4 * H) / (Math.pow(db / 10, 3) * fcd) * 100;
+  const DJ47 = ddb <= 0.80 ? 4.667 :
+               ddb <= 0.85 ? 4.500 :
+               ddb <= 0.90 ? 4.400 :
+               ddb <= 0.95 ? 3.900 : 3.500;
+  const DK44 = DJ47 * DK42;
+  const As_mom_calc  = (DK44 * Ac * fcd) / fyd;          // DK47
+  const As_min_mom   = Ac * 0.0015;                        // DK48
+  const As_mom       = Math.max(As_mom_calc, As_min_mom);
 
-  // Área adotada pelo usuário (longitudinal)
-  const pl = getPesoLinear(phi_long);
-  const As_adotada = n_barras * (Math.PI * Math.pow(phi_long / 10, 2) / 4); // cm²
+  // ── AS DE CORTANTE ────────────────────────────────────────
+  // DC32 = (100/DC7) × (0.707106781×db) × DB38
+  // DD32 = 0.14 × 0.707106781 × db  (As min cortante)
+  // DB35 = (db×0.707106781)²
+  // DB36 = ((1.4×H)/DB35)×100  (se M>0)
+  // CZ38 ≈ 0.077 (coef de momento, calculado via da/db)
+  // DB32 = CZ38×sqrt(Nt) — para Nt=0, DB32=0
+  // DB38 = (1.15×DB36) - DB32
+  const DC7  = 420;  // fyd CA-50 (DC7=SUM(DC4:DC6)=420)
+  const DB35 = Math.pow(db * 0.707106781, 2);
+  const DB36 = M > 0 ? ((1.4 * H) / DB35) * 100 : 0;
+  const CZ34 = n_barras * ((phi_long * phi_long) / 4) * Math.PI / 100 / Ac;
+  const CZ38 = CZ34 <= 0.001 ? 0.07 :
+               CZ34 >= 0.015 ? 0.14 :
+               ((CZ34 - 0.001) * 5) + 0.07;
+  const DB32 = Nt > 0 ? CZ38 * Math.sqrt(Nt) : 0;
+  const DB38 = H > 0 && Nt > 0 ? (1.15 * DB36) - DB32 : 0;
+  const As_cort_calc = (100 / DC7) * (0.707106781 * db) * DB38;
+  const As_min_cort  = 0.14 * 0.707106781 * db;           // DD32
+  const As_cort      = Math.max(As_cort_calc, As_min_cort);
 
-  // Método Miche
-  const nh = NH_TABLE[tipo_solo] || 8.0;
-  const I = (Math.pow(db / 100, 4) * Math.PI) / 64; // m⁴
+  // ── NÚMERO DE BARRAS LONGITUDINAIS ────────────────────────
+  // As governante = máximo entre comp, trac, momento
+  const As_gov = Math.max(As_comp, As_trac, As_mom);
+  const area_barra = ((phi_long * phi_long) / 4) * Math.PI / 100; // cm²
+  const n_barras_calc = Math.ceil(As_gov / area_barra);
+  const n_barras_min  = Math.max(n_barras_calc, 4); // mínimo 4 barras
+  // As fornecido (pelo usuário)
+  const As_fornecido = n_barras * area_barra;
+
+  // ── ESPAÇAMENTO DE ESTRIBOS ──────────────────────────────
+  // DC38 = ((100 - (DC36×phi_est/10)) / DC36) × 2
+  const { DC36, DC38 } = calcularEspacamentoEstribos(db, phi_long, phi_est);
+
+  // ── MÉTODO MICHE (estaca longa, topo livre) ───────────────
+  // CL28 = ((db⁴/10⁸)×PI)/64  (m⁴)
+  // CL31 = (Es×CL28)/nh        (m⁵/MN)
+  // CL32 = CL31^0.2             (lambda, m⁻¹)
+  // CO33 = M/1000 + H           (MN equivalente)
+  // delta = 2.4×(lambda³×CO33×0.001)/(Es×I) × 1000 cm
+  // M_max = 0.79×CO33×lambda   (tf.m)
+  // z_Mmax = 1.32×lambda        (m)
+  const nh = NH_TABLE[tipo_solo]?.[situacao] ?? 8.0;
   const Es = 21000; // MPa
-  const lambda = Math.pow((nh * 1000) / (4 * Es * I), 0.2);
-  const delta_h = 2.4 * (Math.pow(lambda, 3) * H * 0.001 / (Es * I)) * 100; // cm
-  const M_max = 0.79 * H * lambda; // ton.m
-  const z_Mmax = 1.32 / lambda;    // m
+  const I  = ((db * db * db * db) / 100000000) * Math.PI / 64; // m⁴ (CL28)
+  const CL31  = (Es * I) / nh;
+  const lambda = Math.pow(CL31, 0.2);                            // CL32
+  const CO33  = M / 1000 + H;                                    // tf equivalente
+  const CL35  = 2.4 * (Math.pow(lambda, 3) * CO33 * 0.001) / (Es * I);
+  const delta  = CL35 * 1000;                                    // cm (CN53/10)
+  const M_max  = 0.79 * CO33 * lambda;                          // tf.m (CL36)
+  const z_Mmax = 1.32 * lambda;                                  // m (CL37)
+  const z_zero = [1.32/lambda, 2.64/lambda, 3.96/lambda];       // m
 
-  // Estribos — As mínima de cortante
-  const As_cort_min = 4.4547727203 * (db / 45);
-  const pe = getPesoLinear(phi_est);
-  const perimetro_est = Math.PI * (db / 100 - 2 * (cobrimento / 100));
-  const As_est_1 = Math.PI * Math.pow(phi_est / 10, 2) / 4; // cm² por estribo
-  const espacamento_est = As_est_1 / As_cort_min * 100;     // cm
-
-  // Quantitativos
-  const vol_concreto = (Math.PI * Math.pow(db / 100, 2) / 4) * comprimento;
-  const peso_aco_long = n_barras * comprimento * pl;
-  const n_estribos = Math.ceil(comprimento / (espacamento_est / 100));
-  const peso_aco_trans = n_estribos * perimetro_est * pe;
+  // ── QUANTITATIVOS ─────────────────────────────────────────
+  const vol_concreto = Ac * comprimento / 10000;                 // m³ (DI20×L/10000)
+  const peso_barra_long = PESO_BARRA[phi_long] ?? 0;
+  const peso_aco_long  = n_barras * comprimento * peso_barra_long; // kg
+  const perim_estribo  = Math.PI * (db / 100 - 2 * (cobrimento / 100)); // m
+  const n_estribos     = Math.ceil((comprimento * 100) / DC38);
+  const peso_barra_est = PESO_BARRA[phi_est] ?? 0;
+  const peso_aco_trans = n_estribos * perim_estribo * peso_barra_est;   // kg
 
   return {
-    Ac: +DI20.toFixed(2),
-    As_comp: +As_comp.toFixed(2),
-    As_min_comp: +As_min_comp.toFixed(2),
-    As_trac: +As_trac.toFixed(2),
-    As_min_trac: +As_min_trac.toFixed(2),
-    As_mom: +As_mom.toFixed(2),
-    As_min_mom: +As_min_mom.toFixed(2),
-    As_cort_min: +As_cort_min.toFixed(2),
-    As_adotada: +As_adotada.toFixed(2),
-    M_max: +M_max.toFixed(3),
-    z_Mmax: +z_Mmax.toFixed(3),
-    delta_h: +delta_h.toFixed(3),
-    espacamento_est: +espacamento_est.toFixed(1),
-    vol_concreto: +vol_concreto.toFixed(3),
-    peso_aco_long: +peso_aco_long.toFixed(2),
-    peso_aco_trans: +peso_aco_trans.toFixed(2),
-    lambda: +lambda.toFixed(4),
-    nh,
+    // Geometria
+    Ac, ddb, fcd,
+    // Armaduras
+    As_comp_calc, As_min_comp, As_comp,
+    As_trac_calc, As_min_trac, As_trac,
+    As_mom_calc, As_min_mom, As_mom,
+    As_cort_calc, As_min_cort, As_cort,
+    As_gov,
+    // Barras
+    n_barras_calc, n_barras_min, As_fornecido, area_barra,
+    // Estribos
+    DC36, espacamento_estribos: DC38,
+    // Miche
+    nh, lambda, delta, M_max, z_Mmax, z_zero,
+    // Quantitativos
+    vol_concreto, peso_aco_long, peso_aco_trans,
   };
 }
+
+// ── COMPATIBILIDADE ──────────────────────────────────────────
+// Mantém exports usados pelo componente (AbaB e selects)
+export const NH_OPTIONS = Object.keys(NH_TABLE);
+export const PHI_OPTIONS = Object.keys(PESO_BARRA).map(Number);
 
 export function calcularArmaduraSimples({ carga, D, atrito_lateral, comprimento }) {
   const area = Math.PI * Math.pow(D, 2) / 4;
