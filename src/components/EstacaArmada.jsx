@@ -48,15 +48,19 @@ const Field = ({ label, k, type='number', value, onChange, children, unit }) => 
 );
 
 // ── ABA A ─────────────────────────────────────────────────────────
-function Row({ label, calc, min, usado, adotado }) {
-  const ok = adotado !== undefined ? adotado >= usado : true;
+function Row({ label, calc, min, usado, nBarras, phi, asFornecido, asGov }) {
+  const temArmadura = nBarras !== undefined;
+  const ok = temArmadura ? asFornecido >= asGov : true;
   return (
     <tr>
       <td style={S.tdl}>{label}</td>
       <td style={S.td}>{calc?.toFixed(2)}</td>
       <td style={S.td}>{min?.toFixed(2)}</td>
       <td style={{...S.td, fontWeight:700, color:'var(--accent)'}}>{usado?.toFixed(2)}</td>
-      {adotado !== undefined && <td style={{...S.td, ...(ok ? S.ok : S.warn)}}>{adotado?.toFixed(2)} {ok ? '✓' : '✗'}</td>}
+      <td style={S.td}>{temArmadura ? `${nBarras} barras Ø${phi}mm` : '—'}</td>
+      <td style={temArmadura ? {...S.td, ...(ok ? S.ok : S.warn)} : S.td}>
+        {temArmadura ? `${asFornecido?.toFixed(2)} cm² ${ok ? '✓' : '✗'}` : '—'}
+      </td>
     </tr>
   );
 }
@@ -169,35 +173,17 @@ function AbaA({ session, obraAtiva }) {
                 <th style={S.th}>As calc. (cm²)</th>
                 <th style={S.th}>As mín. (cm²)</th>
                 <th style={S.th}>As usado (cm²)</th>
-                <th style={S.th}>As adotado (cm²)</th>
+                <th style={S.th}>Nº barras</th>
+                <th style={S.th}>As fornecido</th>
               </tr></thead>
               <tbody>
-                <Row label="Compressão" calc={res.As_comp_calc} min={res.As_min_comp} usado={res.As_comp} adotado={res.As_fornecido}/>
-                <Row label="Tração" calc={res.As_trac_calc} min={res.As_min_trac} usado={res.As_trac}/>
-                <Row label="Momento" calc={res.As_mom_calc} min={res.As_min_mom} usado={res.As_mom}/>
-                <Row label="Cortante (estribos)" calc={res.As_cort_calc} min={res.As_min_cort} usado={res.As_cort}/>
-              </tbody>
-            </table>
-          </div>
-
-          <div style={S.card}>
-            <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,margin:'0 0 12px',color:'var(--text-primary)'}}>Barras longitudinais</h3>
-            <table style={{width:'100%',borderCollapse:'collapse'}}>
-              <tbody>
-                <tr>
-                  <td style={S.tdl}>As governante (cm²)</td>
-                  <td style={{...S.td,fontWeight:700,color:'var(--accent)'}}>{res.As_gov?.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td style={S.tdl}>Nº mínimo de barras (Ø{f.phi_long}mm)</td>
-                  <td style={{...S.td,fontWeight:700,color:'var(--accent)'}}>{res.n_barras_min} barras</td>
-                </tr>
-                <tr>
-                  <td style={S.tdl}>As fornecido ({f.n_barras} barras Ø{f.phi_long}mm)</td>
-                  <td style={{...S.td,...(res.As_fornecido >= res.As_gov ? S.ok : S.warn)}}>
-                    {res.As_fornecido?.toFixed(2)} cm² {res.As_fornecido >= res.As_gov ? '✓' : '✗ INSUFICIENTE'}
-                  </td>
-                </tr>
+                <Row label="Compressão"
+                  calc={res.As_comp_calc} min={res.As_min_comp} usado={res.As_comp}
+                  nBarras={res.n_barras_min} phi={f.phi_long}
+                  asFornecido={res.As_fornecido} asGov={res.As_gov}/>
+                <Row label="Tração"        calc={res.As_trac_calc} min={res.As_min_trac} usado={res.As_trac}/>
+                <Row label="Momento"       calc={res.As_mom_calc}  min={res.As_min_mom}  usado={res.As_mom}/>
+                <Row label="Cortante"      calc={res.As_cort_calc} min={res.As_min_cort} usado={res.As_cort}/>
               </tbody>
             </table>
           </div>
@@ -217,11 +203,20 @@ function AbaA({ session, obraAtiva }) {
                   ].map(([l, v]) => (
                     <tr key={l}>
                       <td style={S.tdl}>{l}</td>
-                      <td style={S.td}>{v?.toFixed ? v.toFixed(3) : v}</td>
+                      <td style={S.td}>{v?.toFixed ? v.toFixed(2) : v}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <div style={{marginTop:12, padding:'8px 12px', borderRadius:6,
+                background: res.As_fornecido >= res.As_gov ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                border: `1px solid ${res.As_fornecido >= res.As_gov ? 'var(--success)' : 'var(--error)'}`,
+                fontSize:13, fontWeight:600,
+                color: res.As_fornecido >= res.As_gov ? 'var(--success)' : 'var(--error)'}}>
+                {res.As_fornecido >= res.As_gov
+                  ? `✓ As fornecido (${res.As_fornecido?.toFixed(2)} cm²) ≥ As gov (${res.As_gov?.toFixed(2)} cm²)`
+                  : `✗ As fornecido (${res.As_fornecido?.toFixed(2)} cm²) < As gov (${res.As_gov?.toFixed(2)} cm²) — INSUFICIENTE`}
+              </div>
             </div>
 
             <div style={S.card}>
