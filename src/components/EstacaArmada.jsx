@@ -63,7 +63,7 @@ function Row({ label, calc, min, usado, adotado }) {
 
 function AbaA({ session, obraAtiva }) {
   const [f, setF] = useState({
-    da:35, db:45, comprimento:12, Nc:50, atrito:0, Nt:0, M:100, H:2,
+    db:45, comprimento:12, Nc:50, atrito:0, Nt:0, M:100, H:2,
     fck:250, phi_long:10, n_barras:8, phi_est:8, cobrimento:5,
     tipo_solo:'areia_media', situacao:'seca', tipoEstaca:'helice_continua', nome:'',
   });
@@ -83,7 +83,8 @@ function AbaA({ session, obraAtiva }) {
 
   const calcular = () => {
     const num = Object.fromEntries(Object.entries(f).map(([k,v]) => [k, isNaN(v) ? v : Number(v)]));
-    const r = calcularEstacaArmada({ ...num, tipo_solo: f.tipo_solo, situacao: f.situacao });
+    const da = num.db - 2 * num.cobrimento;
+    const r = calcularEstacaArmada({ ...num, da, tipo_solo: f.tipo_solo, situacao: f.situacao });
     setRes(r);
   };
 
@@ -100,10 +101,9 @@ function AbaA({ session, obraAtiva }) {
     <div>
       <div style={S.card}>
         <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,margin:'0 0 16px',color:'var(--accent)'}}>Dados de entrada</h3>
-        <div style={{...S.row, gridTemplateColumns:'1fr 1fr 1fr'}}>
+        <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
           <Field label="Nome" k="nome" type="text" value={f.nome} onChange={set}/>
           <Field label="Diâmetro da estaca (db)" k="db" unit="cm" value={f.db} onChange={set}/>
-          <Field label="Cobrimento ao centro (da)" k="da" unit="cm" value={f.da} onChange={set}/>
         </div>
         <div style={{...S.row, gridTemplateColumns:'1fr 1fr 1fr 1fr'}}>
           <Field label="Comprimento" k="comprimento" unit="m" value={f.comprimento} onChange={set}/>
