@@ -113,16 +113,16 @@ export function calcularEstacaArmada(params) {
   // CZ38 ≈ 0.077 (coef de momento, calculado via da/db)
   // DB32 = CZ38×sqrt(Nt) — para Nt=0, DB32=0
   // DB38 = (1.15×DB36) - DB32
-  const DC7  = 420;  // fyd CA-50 (DC7=SUM(DC4:DC6)=420)
+  const DC7  = 420;  // fyd CA-50
   const DB35 = Math.pow(db * 0.707106781, 2);
-  const DB36 = M > 0 ? ((1.4 * H) / DB35) * 100 : 0;
+  const DB36 = H > 0 ? ((1.4 * H) / DB35) * 100 : 0;
   const CZ34 = n_barras * ((phi_long * phi_long) / 4) * Math.PI / 100 / Ac;
   const CZ38 = CZ34 <= 0.001 ? 0.07 :
                CZ34 >= 0.015 ? 0.14 :
                ((CZ34 - 0.001) * 5) + 0.07;
-  const DB32 = Nt > 0 ? CZ38 * Math.sqrt(Nt) : 0;
-  const DB38 = H > 0 && Nt > 0 ? (1.15 * DB36) - DB32 : 0;
-  const As_cort_calc = (100 / DC7) * (0.707106781 * db) * DB38;
+  const DB32 = CZ38 * Math.sqrt(phi_long);  // phi_long em mm
+  const DB38 = H > 0 ? (1.15 * DB36) - DB32 : 0;
+  const As_cort_calc = DB38 > 0 ? (100 / DC7) * (0.707106781 * db) * DB38 : 0;
   const As_min_cort  = 0.14 * 0.707106781 * db;           // DD32
   const As_cort      = Math.max(As_cort_calc, As_min_cort);
 
