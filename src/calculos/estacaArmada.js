@@ -90,12 +90,12 @@ export function calcularEstacaArmada(params) {
   const As_trac      = Math.max(As_trac_calc, As_min_trac);
 
   // ── AS DE MOMENTO ─────────────────────────────────────────
-  // DK42 = (1.4×H) / ((db/10)³ × fcd) × 100  [db em dm]
+  // DK42 = (1.4×M) / (db³ × fcd) × 100  [db em cm, M em kgm, fcd em kg/cm²]
   // DJ47 = 4.667 (tabela interpolação para da/db ≤ 0.8)
   // DK44 = DJ47 × DK42
   // DK47 = (DK44 × Ac × fcd) / fyd
   // DK48 = Ac × 0.0015
-  const DK42 = (1.4 * H) / (Math.pow(db / 10, 3) * fcd) * 100;
+  const DK42 = (1.4 * M) / (Math.pow(db, 3) * fcd) * 100;
   const DJ47 = ddb <= 0.80 ? 4.667 :
                ddb <= 0.85 ? 4.500 :
                ddb <= 0.90 ? 4.400 :
@@ -129,15 +129,20 @@ export function calcularEstacaArmada(params) {
   // ── NÚMERO DE BARRAS LONGITUDINAIS ────────────────────────
   // As governante = máximo entre comp, trac, momento
   const As_gov = Math.max(As_comp, As_trac, As_mom);
-  const area_barra = ((phi_long * phi_long) / 4) * Math.PI / 100; // cm²
-  const n_barras_calc = Math.ceil(As_gov / area_barra);
-  const n_barras_min  = Math.max(n_barras_calc, 4); // mínimo 4 barras
+  const area_barra_long = ((phi_long * phi_long) / 4) * Math.PI / 100; // DA18 (cm²)
+  const area_barra_est  = ((phi_est  * phi_est)  / 4) * Math.PI / 100; // DB18 (cm²)
+  const n_barras_calc = Math.max(4, Math.ceil(As_gov / area_barra_long));
+  const n_barras_min  = n_barras_calc;
   // As fornecido (pelo usuário)
-  const As_fornecido = n_barras * area_barra;
+  const As_fornecido = n_barras * area_barra_long;
 
   // ── ESPAÇAMENTO DE ESTRIBOS ──────────────────────────────
+  // DC35 = As_min_cort / area_barra_long
+  // DC36 = ROUND(DC35, 0)
   // DC38 = ((100 - (DC36×phi_est/10)) / DC36) × 2
-  const { DC36, DC38 } = calcularEspacamentoEstribos(db, phi_long, phi_est);
+  const DC35 = As_min_cort / area_barra_long;
+  const DC36 = Math.round(DC35);
+  const espacamento_estribos = ((100 - (DC36 * phi_est / 10)) / DC36) * 2;
 
   // ── MÉTODO MICHE (estaca longa, topo livre) ───────────────
   // CL28 = ((db⁴/10⁸)×PI)/64  (m⁴)
@@ -160,13 +165,13 @@ export function calcularEstacaArmada(params) {
   const z_zero = [1.32/lambda, 2.64/lambda, 3.96/lambda];       // m
 
   // ── QUANTITATIVOS ─────────────────────────────────────────
-  const vol_concreto = Ac * comprimento / 10000;                 // m³ (DI20×L/10000)
-  const peso_barra_long = PESO_BARRA[phi_long] ?? 0;
-  const peso_aco_long  = n_barras * comprimento * peso_barra_long; // kg
-  const perim_estribo  = Math.PI * (db / 100 - 2 * (cobrimento / 100)); // m
-  const n_estribos     = Math.ceil((comprimento * 100) / DC38);
-  const peso_barra_est = PESO_BARRA[phi_est] ?? 0;
-  const peso_aco_trans = n_estribos * perim_estribo * peso_barra_est;   // kg
+  const vol_concreto = Ac * comprimento / 10000;                          // m³
+  const peso_linear_long = area_barra_long * 0.785;                       // kg/m (DE18)
+  const peso_aco_long    = comprimento * n_barras * peso_linear_long;     // kg
+  const perim_estribo    = Math.PI * (db / 100 - 2 * (cobrimento / 100)); // m
+  const n_estribos       = Math.ceil((comprimento * 100) / espacamento_estribos);
+  const peso_linear_est  = area_barra_est * 0.785;                        // kg/m
+  const peso_aco_trans   = n_estribos * perim_estribo * peso_linear_est;  // kg
 
   return {
     // Geometria
@@ -178,9 +183,9 @@ export function calcularEstacaArmada(params) {
     As_cort_calc, As_min_cort, As_cort,
     As_gov,
     // Barras
-    n_barras_calc, n_barras_min, As_fornecido, area_barra,
+    n_barras_calc, n_barras_min, As_fornecido, area_barra: area_barra_long,
     // Estribos
-    DC36, espacamento_estribos: DC38,
+    DC36, espacamento_estribos,
     // Miche
     nh, lambda, delta, M_max, z_Mmax, z_zero,
     // Quantitativos
