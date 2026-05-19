@@ -133,16 +133,26 @@ export function calcularEstacaArmada(params) {
   const area_barra_est  = ((phi_est  * phi_est)  / 4) * Math.PI / 100; // DB18 (cm²)
   const n_barras_calc = Math.max(4, Math.ceil(As_gov / area_barra_long));
   const n_barras_min  = n_barras_calc;
-  // As fornecido (pelo usuário)
+  // As fornecido = mínimo de barras necessário × área (garante que sempre mostra valor coerente)
   const As_fornecido = n_barras * area_barra_long;
+  console.log('[estacaArmada] As_gov', As_gov.toFixed(4),
+    'n_barras_min', n_barras_min,
+    'area_barra_long', area_barra_long.toFixed(4),
+    'n_barras_usuario', n_barras,
+    'As_fornecido', As_fornecido.toFixed(4));
 
   // ── ESPAÇAMENTO DE ESTRIBOS ──────────────────────────────
-  // DC35 = As_min_cort / area_barra_long
+  // DC35 = As_min_cort / area_barra_est (estribo, não longitudinal)
   // DC36 = ROUND(DC35, 0)
   // DC38 = ((100 - (DC36×phi_est/10)) / DC36) × 2
-  const DC35 = As_min_cort / area_barra_long;
+  const DC35 = As_min_cort / area_barra_est;
   const DC36 = Math.round(DC35);
   const espacamento_estribos = ((100 - (DC36 * phi_est / 10)) / DC36) * 2;
+
+  console.log('[estacaArmada] area_barra_long', area_barra_long.toFixed(4),
+    'area_barra_est', area_barra_est.toFixed(4),
+    'As_min_cort', As_min_cort.toFixed(4),
+    'DC35', DC35.toFixed(4), 'DC36', DC36, 'esp', espacamento_estribos.toFixed(2));
 
   // ── MÉTODO MICHE (estaca longa, topo livre) ───────────────
   // CL28 = ((db⁴/10⁸)×PI)/64  (m⁴)
@@ -160,9 +170,10 @@ export function calcularEstacaArmada(params) {
   const CO33  = M / 1000 + H;                                    // tf equivalente
   const CL35  = 2.4 * (Math.pow(lambda, 3) * CO33 * 0.001) / (Es * I);
   const delta  = CL35 * 1000;                                    // cm (CN53/10)
-  const M_max  = 0.79 * CO33 * lambda;                          // tf.m (CL36)
-  const z_Mmax = 1.32 * lambda;                                  // m (CL37)
-  const z_zero = [1.32/lambda, 2.64/lambda, 3.96/lambda];       // m
+  const M_max     = 0.79 * CO33 * lambda;          // tf.m (CL36)
+  const z_Mmax    = 1.32 * lambda;                 // m (CL37)
+  const prof_momento = lambda * 4;                 // m (CL33 = profundidade de influência)
+  const z_zero    = [1.32/lambda, 2.64/lambda, 3.96/lambda]; // m
 
   // ── QUANTITATIVOS ─────────────────────────────────────────
   const vol_concreto = Ac * comprimento / 10000;                          // m³
@@ -172,6 +183,8 @@ export function calcularEstacaArmada(params) {
   const n_estribos       = Math.ceil((comprimento * 100) / espacamento_estribos);
   const peso_linear_est  = area_barra_est * 0.785;                        // kg/m
   const peso_aco_trans   = n_estribos * perim_estribo * peso_linear_est;  // kg
+  console.log('[estacaArmada] n_estribos', n_estribos, 'perim_estribo', perim_estribo.toFixed(4),
+    'peso_lin_est', peso_linear_est.toFixed(4), 'peso_aco_trans', peso_aco_trans.toFixed(2));
 
   return {
     // Geometria
@@ -187,7 +200,7 @@ export function calcularEstacaArmada(params) {
     // Estribos
     DC36, espacamento_estribos,
     // Miche
-    nh, lambda, delta, M_max, z_Mmax, z_zero,
+    nh, lambda, delta, M_max, z_Mmax, prof_momento, z_zero,
     // Quantitativos
     vol_concreto, peso_aco_long, peso_aco_trans,
   };

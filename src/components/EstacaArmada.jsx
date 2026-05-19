@@ -196,6 +196,7 @@ function AbaA({ session, obraAtiva }) {
                   {[
                     ['nh (MN/m³)', res.nh],
                     ['λ (m⁻¹)', res.lambda],
+                    ['Prof. do momento (m)', res.prof_momento],
                     ['M máx (ton.m)', res.M_max],
                     ['Prof. M máx (m)', res.z_Mmax],
                     ['Desl. horiz. topo (cm)', res.delta],
