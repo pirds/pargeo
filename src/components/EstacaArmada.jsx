@@ -211,7 +211,6 @@ function AbaA({ session, obraAtiva }) {
                     ['Prof. do momento (m)', res.prof_momento],
                     ['M máx (ton.m)', res.M_max],
                     ['Prof. M máx (m)', res.z_Mmax],
-                    ['Desl. horiz. topo (cm)', res.delta],
                     ['Espaç. estribos (cm)', res.espacamento_estribos],
                   ].map(([l, v]) => (
                     <tr key={l}>
@@ -219,6 +218,17 @@ function AbaA({ session, obraAtiva }) {
                       <td style={S.td}>{v?.toFixed ? v.toFixed(2) : v}</td>
                     </tr>
                   ))}
+                  <tr>
+                    <td style={S.tdl}>Desl. horiz. topo (cm)</td>
+                    <td style={S.td}>
+                      <span style={{fontWeight:700, color: res.deslocamento_ok ? 'var(--success)' : 'var(--error)'}}>
+                        {res.delta?.toFixed(2)} cm {res.deslocamento_ok ? '✓' : '✗'}
+                      </span>
+                      <div style={{fontSize:11, color:'var(--text-muted)', marginTop:2}}>
+                        Limite adotado: 1,0 cm (prática de projeto — verificar requisitos da obra)
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
               <div style={{marginTop:12, padding:'8px 12px', borderRadius:6,

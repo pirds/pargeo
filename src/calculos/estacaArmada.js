@@ -216,6 +216,7 @@ export function calcularEstacaArmada(params) {
     comp_armacao, criterio_armacao, n_estribos_armacao,
     // Miche
     nh, lambda, delta, M_max, z_Mmax, prof_momento, z_zero,
+    limite_deslocamento: 1.0, deslocamento_ok: delta <= 1.0,
     // Quantitativos
     vol_concreto, peso_aco_long, peso_aco_trans,
   };
