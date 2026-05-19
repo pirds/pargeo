@@ -1,8 +1,6 @@
 // ============================================================
 // CÁLCULO DE CAPACIDADE DE CARGA DE ESTACAS — 5 Métodos SPT
-// Fórmulas extraídas e validadas célula por célula da planilha
-// Perfil validação: cotas 1-7=ARE, cota8=ARG, cota9=ARGA,
-//   cota10(ponta)=ARGA, cota11+=ARG | φ450mm, L=10m
+// Com fatores por TIPO DE ESTACA (extraídos da planilha X3..X11)
 // ============================================================
 
 export function calcularGeometria(tipoSecao, dimensao) {
@@ -16,53 +14,41 @@ export function calcularGeometria(tipoSecao, dimensao) {
 }
 
 // ============================================================
-// TABELAS DE COEFICIENTES (extraídas das fórmulas BL..CA e FM..FT)
-// Mapeamento: AG=ARG, AH=ARGA, AI=SAG, AJ=SAR, AK=ARGS, AL=ARS, AM=ARE, AN=ARP
+// FATORES POR TIPO DE ESTACA
+// Fonte: planilha linhas 5-11, cols AA(αi), AB(αp), AF(F1), AG(F2)
+// Afetam apenas Velloso (αi, αp) e Aoki-Velloso (F1, F2)
+// Décourt-Quaresma, Teixeira e Alonso NÃO variam com tipo de estaca
 // ============================================================
+export const FATORES_ESTACA = {
+  franki:           { alpha_i: 1.00, alpha_p: 1.00, F1: 1.5625, F2: 3.125 },
+  premoldada:       { alpha_i: 1.00, alpha_p: 1.00, F1: 2.50,   F2: 5.00  },
+  helice_continua:  { alpha_i: 0.85, alpha_p: 0.50, F1: 2.00,   F2: 4.00  },
+  escavada_sem_rev: { alpha_i: 0.50, alpha_p: 0.50, F1: 3.00,   F2: 6.00  },
+  escavada_com_rev: { alpha_i: 0.70, alpha_p: 0.50, F1: 3.00,   F2: 6.00  },
+  raiz:             { alpha_i: 0.85, alpha_p: 0.85, F1: 2.50,   F2: 4.50  },
+  hollow_auger:     { alpha_i: 0.90, alpha_p: 0.50, F1: 2.00,   F2: 4.00  },
+};
 
-// Velloso: Ci lateral (BL=AG×0.63, BN=AH×0.63, BP=AI×0.70, BR=AJ×0.80,
-//          BT=AK×0.85, BV=AL×0.85, BX=AM×0.50, BZ=AN×0.50)
+// ============================================================
+// TABELAS DE COEFICIENTES POR TIPO DE SOLO
+// ============================================================
 const CI = { ARG:0.63, ARGA:0.63, SAG:0.70, SAR:0.80, ARGS:0.85, ARS:0.85, ARE:0.50, ARP:0.50 };
-
-// Velloso: Cp ponta (BM=AG×25, BO=AH×25, BQ=AI×30, BS=AJ×40,
-//          BU=AK×45, BW=AL×50, BY=AM×60, CA=AN×60)
 const CP_V = { ARG:25, ARGA:25, SAG:30, SAR:40, ARGS:45, ARS:50, ARE:60, ARP:60 };
-
-// Aoki: αK lateral (EA=DY×N; αK=DY por tipo)
 const AOKI_AK_LAT = { ARG:0.88, ARGA:0.88, SAG:0.88, SAR:0.88, ARGS:0.88, ARS:0.88, ARE:1.40, ARP:1.40 };
-
-// Aoki: K ponta (DZ=K sem α; DI=AG×22, DK=AH×35, DM=AI×23, DO=AJ×55,
-//       DQ=AK×60, DS=AL×80, DU=AM×100, DW=AN×100)
 const AOKI_K_PONT = { ARG:22, ARGA:35, SAG:23, SAR:55, ARGS:60, ARS:80, ARE:100, ARP:100 };
-
-// Décourt: αK lateral (FD=1.0=ARG, FE=1.0=ARGA, FF=1.0=SAG, FG=0.9=SAR,
-//          FH=0.8=ARGS, FI=0.8=ARS, FJ=0.7=ARE, FK=0.7=ARP)
 const DQ_AK_LAT = { ARG:1.0, ARGA:1.0, SAG:1.0, SAR:0.9, ARGS:0.8, ARS:0.8, ARE:0.7, ARP:0.7 };
-
-// Décourt: αK acima da ponta (GX=EQ×FX×GG×GP; FX=ARGA flag → só ARGA≠0 acima)
 const DQ_AK_ACIMA = { ARG:0, ARGA:9.35, SAG:9.35, SAR:9.35, ARGS:0, ARS:0, ARE:0, ARP:0 };
-
-// Décourt: αK ponta + abaixo (GX para CC=0, CC=-1, CC=-2)
 const DQ_AK_ABAIXO = { ARG:10.2, ARGA:10.2, SAG:10.2, SAR:10.2, ARGS:10.2, ARS:0, ARE:0, ARP:0 };
-
-// Alonso: α ponta (CX12 por tipo)
 const ALONSO_ALPHA = { ARG:0.67, ARGA:0.65, SAG:0.56, SAR:0.59, ARGS:0.67, ARS:0.65, ARE:0.65, ARP:0.65 };
-
-// Alonso: K lateral/ponta (CR=ARGS×10, CX=ARE×20, AH=ARGA×10 etc)
 const ALONSO_K = { ARG:10, ARGA:10, SAG:10, SAR:10, ARGS:10, ARS:10, ARE:20, ARP:20 };
 
 // ============================================================
 // MÉTODO 1 — P.P.C. Velloso
-// CX27 = 0.85 × λI × perimetro × CK65
-// CX28 = 0.5 × λP × CX24 × areaPonta × 0.5 × (CL65 + CP65)
-// CK65 = Σ CI[tipo] × min(SPT,40) — laterais (CC>0)
-// CL65 = Σ CP[tipo]×SPT / CZ25 — janela CC=1..CZ25 acima
-// CP65 = Σ CP[tipo]×SPT / CZ26 — ponta(CC=0) + 1ª abaixo
-// CZ25 = ROUND(8×db,0); CZ26 = ROUND(3.5×db,0)
-// CX24 = 1.016 − 0.016×(db×100/3.6)
+// αi e αp variam com tipo de estaca (AC12 e AD12)
 // ============================================================
-export function calcularVelloso(camadas, comprimento, geometria, tipoCarregamento) {
+export function calcularVelloso(camadas, comprimento, geometria, tipoCarregamento, tipoEstaca = 'helice_continua') {
   const { perimetro, areaPonta, diametro: db } = geometria;
+  const fatores = FATORES_ESTACA[tipoEstaca] ?? FATORES_ESTACA.helice_continua;
   const lambdaI = tipoCarregamento === 'tracao' ? 0 : 1;
   const lambdaP = tipoCarregamento === 'tracao' ? 0 : 1;
   const CZ25 = Math.max(1, Math.round(8 * db));
@@ -78,7 +64,9 @@ export function calcularVelloso(camadas, comprimento, geometria, tipoCarregament
 
   let CK65 = 0;
   for (const c of lat) CK65 += (CI[c.tipo] ?? 0.50) * Math.min(c.spt, 40);
-  const RL = 0.85 * lambdaI * perimetro * CK65;
+
+  // AC12 = αi do tipo de estaca (não mais fixo em 0.85)
+  const RL = fatores.alpha_i * lambdaI * perimetro * CK65;
 
   const janelaCL = atePonta.filter(c => { const cc = comprimento - c.cota; return cc >= 1 && cc <= CZ25; });
   let somaCL = 0;
@@ -90,20 +78,21 @@ export function calcularVelloso(camadas, comprimento, geometria, tipoCarregament
   for (const c of pontaEAbaixo) somaCP += (CP_V[c.tipo] ?? 25) * Math.min(c.spt, 40);
   const CP65 = somaCP / CZ26;
 
-  const RP = 0.5 * lambdaP * CX24 * areaPonta * 0.5 * (CL65 + CP65);
+  // AD12 = αp do tipo de estaca (não mais fixo em 0.5)
+  const RP = fatores.alpha_p * lambdaP * CX24 * areaPonta * 0.5 * (CL65 + CP65);
   const Q = RL + RP;
   return { RL, RP, Q, Qadm: Q / 2 };
 }
 
 // ============================================================
 // MÉTODO 2 — Aoki-Velloso
-// EF15 = perimetro/4 × EB65
-// EF16 = areaPonta/2 × EC65
-// EB65 = Σ αK_lat × SPT — laterais
-// EC65 = K_ponta × SPT_ponta (CC=0, sem α)
+// F1 e F2 variam com tipo de estaca (AH12 e AI12)
 // ============================================================
-export function calcularAoki(camadas, comprimento, geometria) {
+export function calcularAoki(camadas, comprimento, geometria, tipoEstaca = 'helice_continua') {
   const { perimetro, areaPonta } = geometria;
+  const fatores = FATORES_ESTACA[tipoEstaca] ?? FATORES_ESTACA.helice_continua;
+  const F1 = fatores.F1;
+  const F2 = fatores.F2;
 
   const ord = [...camadas].filter(c => c.spt > 0).sort((a, b) => a.cota - b.cota);
   const lat = ord.filter(c => c.cota < comprimento);
@@ -115,18 +104,14 @@ export function calcularAoki(camadas, comprimento, geometria) {
   for (const c of lat) EB65 += (AOKI_AK_LAT[c.tipo] ?? 0.88) * c.spt;
   const EC65 = (AOKI_K_PONT[ponta.tipo] ?? 35) * ponta.spt;
 
-  const RL = (perimetro / 4) * EB65;
-  const RP = (areaPonta / 2) * EC65;
+  const RL = (perimetro / F2) * EB65;
+  const RP = (areaPonta / F1) * EC65;
   const Q = RL + RP;
   return { RL, RP, Q, Qadm: Q / 2 };
 }
 
 // ============================================================
-// MÉTODO 3 — Décourt-Quaresma
-// HJ15 = (FU65 × L × perimetro) / n_laterais
-// HJ16 = (HF65 / 3) × areaPonta
-// FU65 = Σ αK × (max(3,min(SPT,50))/3 + 1) — laterais
-// HF65 = Σ αK_acima × SPT (CC=1..CZ25) + Σ αK_abaixo × SPT (ponta+2 abaixo)
+// MÉTODO 3 — Décourt-Quaresma (NÃO varia com tipo de estaca)
 // ============================================================
 export function calcularDecourt(camadas, comprimento, geometria) {
   const { perimetro, areaPonta, diametro: db } = geometria;
@@ -140,7 +125,6 @@ export function calcularDecourt(camadas, comprimento, geometria) {
   const ponta = atePonta[atePonta.length - 1];
   const nLat = Math.max(lat.length, 1);
 
-  // FU65: fórmula FM..FT = αK × (SPT_DQ/3 + 1) por camada lateral
   let FU65 = 0;
   for (const c of lat) {
     const ak = DQ_AK_LAT[c.tipo] ?? 0.7;
@@ -148,7 +132,6 @@ export function calcularDecourt(camadas, comprimento, geometria) {
     FU65 += ak * (spt_dq / 3 + 1);
   }
 
-  // HF65: janela acima + ponta + abaixo
   const janelaAcima = atePonta.filter(c => { const cc = comprimento - c.cota; return cc >= 1 && cc <= CZ25; });
   let HF65 = 0;
   for (const c of janelaAcima) HF65 += (DQ_AK_ACIMA[c.tipo] ?? 0) * Math.max(3, Math.min(c.spt, 50));
@@ -161,12 +144,7 @@ export function calcularDecourt(camadas, comprimento, geometria) {
 }
 
 // ============================================================
-// MÉTODO 4 — A.H. Teixeira
-// II70 = HN65 × perimetro × 0.4
-// II71 = areaPonta × 0.5 × IN68
-// HN65 = Σ max(SPT,4) — laterais
-// IN66 = Σ SPT×10 para CC=1..HO (HO=ROUND(db×4,0))
-// IN67 = IN66/HO; IW67=0; IN68=IN67
+// MÉTODO 4 — A.H. Teixeira (NÃO varia com tipo de estaca)
 // ============================================================
 export function calcularTeixeira(camadas, comprimento, geometria) {
   const { perimetro, areaPonta, diametro: db } = geometria;
@@ -199,12 +177,7 @@ export function calcularTeixeira(camadas, comprimento, geometria) {
 }
 
 // ============================================================
-// MÉTODO 5 — U.R. Alonso
-// DA126 = CM122 × perimetro × CX12 × 0.662
-// DA127 = (DH123 + DQ123) × 0.5 × areaPonta
-// CM122 = Σ min(SPT,40) — todas as laterais
-// DH123 = DG123/n: Σ K×SPT na janela CC=1..CZ25
-// DQ123 = K[ponta] × SPT_ponta
+// MÉTODO 5 — U.R. Alonso (NÃO varia com tipo de estaca)
 // ============================================================
 export function calcularAlonso(camadas, comprimento, geometria) {
   const { perimetro, areaPonta, diametro: db } = geometria;
@@ -225,7 +198,6 @@ export function calcularAlonso(camadas, comprimento, geometria) {
   let DG123 = 0;
   for (const c of janelaAcima) DG123 += (ALONSO_K[c.tipo] ?? 10) * Math.min(c.spt, 40);
   const DH123 = DG123 / Math.max(janelaAcima.length, 1);
-
   const DQ123 = (ALONSO_K[ponta.tipo] ?? 10) * Math.min(ponta.spt, 40);
 
   const RL = CM122 * perimetro * CX12 * 0.662;
@@ -237,10 +209,10 @@ export function calcularAlonso(camadas, comprimento, geometria) {
 // ============================================================
 // CALCULAR TODOS
 // ============================================================
-export function calcularTodos(camadas, comprimento, tipoSecao, dimensao, tipoCarregamento = 'compressao') {
+export function calcularTodos(camadas, comprimento, tipoSecao, dimensao, tipoCarregamento = 'compressao', tipoEstaca = 'helice_continua') {
   const geometria = calcularGeometria(tipoSecao, dimensao);
-  const velloso  = calcularVelloso(camadas, comprimento, geometria, tipoCarregamento);
-  const aoki     = calcularAoki(camadas, comprimento, geometria);
+  const velloso  = calcularVelloso(camadas, comprimento, geometria, tipoCarregamento, tipoEstaca);
+  const aoki     = calcularAoki(camadas, comprimento, geometria, tipoEstaca);
   const decourt  = calcularDecourt(camadas, comprimento, geometria);
   const teixeira = calcularTeixeira(camadas, comprimento, geometria);
   const alonso   = calcularAlonso(camadas, comprimento, geometria);
