@@ -48,8 +48,9 @@ const Field = ({ label, k, type='number', value, onChange, children, unit }) => 
 );
 
 // ── ABA A ─────────────────────────────────────────────────────────
-function Row({ label, calc, min, usado, nBarras, phi, asFornecido, asGov }) {
+function Row({ label, calc, min, usado, nBarras, phi, asFornecido, asGov, nBarrasText }) {
   const temArmadura = nBarras !== undefined;
+  const temTexto = nBarrasText !== undefined;
   const ok = temArmadura ? asFornecido >= asGov : true;
   return (
     <tr>
@@ -57,7 +58,9 @@ function Row({ label, calc, min, usado, nBarras, phi, asFornecido, asGov }) {
       <td style={S.td}>{calc?.toFixed(2)}</td>
       <td style={S.td}>{min?.toFixed(2)}</td>
       <td style={{...S.td, fontWeight:700, color:'var(--accent)'}}>{usado?.toFixed(2)}</td>
-      <td style={S.td}>{temArmadura ? `${nBarras} barras Ø${phi}mm` : '—'}</td>
+      <td style={S.td}>
+        {temArmadura ? `${nBarras} barras Ø${phi}mm` : temTexto ? nBarrasText : '—'}
+      </td>
       <td style={temArmadura ? {...S.td, ...(ok ? S.ok : S.warn)} : S.td}>
         {temArmadura ? `${asFornecido?.toFixed(2)} cm² ${ok ? '✓' : '✗'}` : '—'}
       </td>
@@ -164,6 +167,15 @@ function AbaA({ session, obraAtiva }) {
 
       {res && (
         <>
+          <div style={{background:'rgba(245,158,11,0.06)', border:'2px solid var(--accent)', borderRadius:10, padding:20, marginBottom:16}}>
+            <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,margin:'0 0 10px',color:'var(--accent)'}}>Comprimento de Armação</h3>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:10}}>{res.criterio_armacao}</div>
+            <div style={{fontSize:28,fontWeight:700,fontFamily:"'Barlow Condensed',sans-serif",color:'var(--accent)'}}>
+              {Math.min(res.comp_armacao, Number(f.comprimento)).toFixed(2)} m
+              {res.comp_armacao > Number(f.comprimento) && <span style={{fontSize:13,color:'var(--error)',marginLeft:10}}>⚠ excede comprimento total</span>}
+            </div>
+          </div>
+
           <div style={S.card}>
             <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,margin:'0 0 12px',color:'var(--text-primary)'}}>Armaduras</h3>
             <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -182,7 +194,8 @@ function AbaA({ session, obraAtiva }) {
                   asFornecido={res.As_fornecido} asGov={res.As_gov}/>
                 <Row label="Tração"        calc={res.As_trac_calc} min={res.As_min_trac} usado={res.As_trac}/>
                 <Row label="Momento"       calc={res.As_mom_calc}  min={res.As_min_mom}  usado={res.As_mom}/>
-                <Row label="Cortante"      calc={res.As_cort_calc} min={res.As_min_cort} usado={res.As_cort}/>
+                <Row label="Cortante"      calc={res.As_cort_calc} min={res.As_min_cort} usado={res.As_cort}
+                  nBarrasText={`Ø${res.phi_est}mm c/${res.espacamento_estribos?.toFixed(2)}cm — ${res.n_estribos_armacao} un.`}/>
               </tbody>
             </table>
           </div>

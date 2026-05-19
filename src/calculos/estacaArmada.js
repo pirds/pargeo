@@ -165,6 +165,22 @@ export function calcularEstacaArmada(params) {
   const prof_momento = lambda * 4;                 // m (CL33 = profundidade de influência)
   const z_zero    = [1.32/lambda, 2.64/lambda, 3.96/lambda]; // m
 
+  // ── COMPRIMENTO DE ARMAÇÃO ────────────────────────────────
+  const tensao = (Nc * 1000) / Ac;
+  const comp_armacao = (H > 0 || M > 0)
+    ? lambda * 4
+    : (atrito > 0 && tensao > 50)
+      ? (comprimento / (atrito * 1000)) * (Nc * 1000 - 50 * Ac)
+      : 0;
+  const criterio_armacao = (H > 0 || M > 0)
+    ? 'Carga horizontal/momento presente — Prof. do momento (1º zero)'
+    : tensao > 50
+      ? 'Apenas compressão — fórmula simplificada'
+      : 'Não necessita armação (tensão ≤ 50 kg/cm²)';
+  const n_estribos_armacao = espacamento_estribos > 0
+    ? Math.ceil(comp_armacao / (espacamento_estribos / 100))
+    : 0;
+
   // ── QUANTITATIVOS ─────────────────────────────────────────
   const vol_concreto = Ac * comprimento / 10000;                          // m³
   const peso_linear_long = area_barra_long * 0.785;                       // kg/m (DE18)
@@ -188,7 +204,9 @@ export function calcularEstacaArmada(params) {
     // Barras
     n_barras_calc: n_barras_adotado, n_barras_min, As_fornecido, area_barra: area_barra_long,
     // Estribos
-    DC36, espacamento_estribos,
+    DC36, espacamento_estribos, phi_est,
+    // Comprimento de armação
+    comp_armacao, criterio_armacao, n_estribos_armacao,
     // Miche
     nh, lambda, delta, M_max, z_Mmax, prof_momento, z_zero,
     // Quantitativos
