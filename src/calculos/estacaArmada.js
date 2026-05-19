@@ -83,10 +83,17 @@ export function calcularEstacaArmada(params) {
   const As_comp      = Math.max(As_comp_calc, As_min_comp); // DL26
 
   // ── AS DE TRAÇÃO ──────────────────────────────────────────
-  // DL35 = (1.4×Nt×1000)/fyd
-  const As_trac_calc = Nt > 0 ? (1.4 * Nt * 1000) / fyd : 0;
+  // ── AS DE TRAÇÃO — DL32..DL36 ─────────────────────────────
+  const DK32 = ((2 * 1.5 - 0.75) * 2100000 * 22 * 1) / 3;  // = 34650000
+  const DK33 = Math.sqrt(DK32);                               // = 5886.43
+  const DK34 = DK33 / Math.sqrt(phi_long);                   // phi_long em mm
+  const DL32 = Nt / DK34;                                    // Nt em tf
+  const DL33 = DL32 * 1000;                                  // As mín estrutural (cm²)
+  const DL35 = Nt > 0 ? (1.4 * Nt * 1000) / fyd : 0;       // As calculado (cm²)
+  const DL36 = Math.max(DL35, DL33);
+  const As_trac_calc = DL35;
   const As_min_trac  = Nt > 0 ? Ac * 0.004 : 0;
-  const As_trac      = Math.max(As_trac_calc, As_min_trac);
+  const As_trac      = Nt > 0 ? Math.max(DL36, As_min_trac) : 0;
 
   // ── AS DE MOMENTO ─────────────────────────────────────────
   // DK42 = (1.4×M) / (db³ × fcd) × 100  [db em cm, M em kgm, fcd em kg/cm²]
