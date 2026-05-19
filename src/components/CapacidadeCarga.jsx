@@ -14,7 +14,16 @@ const TIPOS_SOLO = [
   { value: 'ARE',  label: 'ARE — Areia' },
   { value: 'ARP',  label: 'ARP — Areia com Pedregulhos' },
 ];
-const METODOS = ['velloso','aoki','decourt','teixeira','alonso'];
+const TIPOS_ESTACA = [
+  { value: 'helice_continua',  label: 'Hélice Contínua' },
+  { value: 'franki',           label: 'Franki' },
+  { value: 'premoldada',       label: 'Pré-moldada (Concreto)' },
+  { value: 'escavada_sem_rev', label: 'Escavada sem Revestimento' },
+  { value: 'escavada_com_rev', label: 'Escavada c/ Revestimento ou Lama' },
+  { value: 'raiz',             label: 'Raiz' },
+  { value: 'hollow_auger',     label: 'Hollow Auger' },
+];
+const METODOS =['velloso','aoki','decourt','teixeira','alonso'];
 const METODO_LABEL = { velloso:'P.P.C. Velloso', aoki:'Aoki-Velloso', decourt:'Décourt-Quaresma', teixeira:'A.H. Teixeira', alonso:'U.R. Alonso' };
 const CORES = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444'];
 
@@ -52,6 +61,7 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
   const [dimensao, setDimensao] = useState(450);
   const [comprimento, setComprimento] = useState(10);
   const [tipoCarga, setTipoCarga] = useState('compressao');
+  const [tipoEstaca, setTipoEstaca] = useState('helice_continua');
   const [camadas, setCamadas] = useState([
     {cota:1,spt:1,tipo:'ARE'},{cota:2,spt:4,tipo:'ARE'},{cota:3,spt:9,tipo:'ARE'},{cota:4,spt:9,tipo:'ARE'},{cota:5,spt:6,tipo:'ARE'},{cota:6,spt:9,tipo:'ARE'},{cota:7,spt:9,tipo:'ARE'},{cota:8,spt:15,tipo:'ARG'},{cota:9,spt:18,tipo:'ARG'},{cota:10,spt:18,tipo:'ARGA'},{cota:11,spt:25,tipo:'ARG'},{cota:12,spt:12,tipo:'ARG'},{cota:13,spt:12,tipo:'ARG'},{cota:14,spt:12,tipo:'ARG'},{cota:15,spt:15,tipo:'ARG'},{cota:16,spt:18,tipo:'ARG'},{cota:17,spt:12,tipo:'ARG'},{cota:18,spt:19,tipo:'ARG'},{cota:19,spt:12,tipo:'ARG'},{cota:20,spt:16,tipo:'ARG'},{cota:21,spt:18,tipo:'ARG'},{cota:22,spt:18,tipo:'ARG'},{cota:23,spt:18,tipo:'ARG'},{cota:24,spt:19,tipo:'ARG'},{cota:25,spt:18,tipo:'ARG'},{cota:26,spt:19,tipo:'ARG'},{cota:27,spt:16,tipo:'ARG'},{cota:28,spt:18,tipo:'ARG'},{cota:29,spt:18,tipo:'ARG'},{cota:30,spt:19,tipo:'ARG'},{cota:31,spt:11,tipo:'ARG'},{cota:32,spt:32,tipo:'ARG'},{cota:33,spt:43,tipo:'ARG'},
   ]);
@@ -66,7 +76,8 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
   const calcular = () => {
     localStorage.setItem('estaca_dimensao', dimensao);
     localStorage.setItem('estaca_tipo_secao', tipoSecao);
-    const res = calcularTodos(camadas, Number(comprimento), tipoSecao, Number(dimensao), tipoCarga);
+    localStorage.setItem('estaca_tipo_estaca', tipoEstaca);
+    const res = calcularTodos(camadas, Number(comprimento), tipoSecao, Number(dimensao), tipoCarga, tipoEstaca);
     const valid = METODOS.map(m => res[m]).filter(Boolean);
     const media = valid.length ? {
       RL:   valid.reduce((s, m) => s + m.RL,   0) / valid.length,
@@ -117,12 +128,17 @@ export default function CapacidadeCarga({ session, obraAtiva }) {
           </div>
           <div><label style={S.label}>{tipoSecao==='circular'?'Diâmetro (mm)':'Lado (mm)'}</label><input type="number" value={dimensao} onChange={e=>setDimensao(e.target.value)} /></div>
         </div>
-        <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
+        <div style={{...S.row, gridTemplateColumns:'1fr 1fr 2fr'}}>
           <div><label style={S.label}>Comprimento da estaca (m)</label><input type="number" value={comprimento} onChange={e=>setComprimento(e.target.value)} /></div>
           <div><label style={S.label}>Tipo de carregamento</label>
             <select value={tipoCarga} onChange={e=>setTipoCarga(e.target.value)}>
               <option value="compressao">Compressão</option>
               <option value="tracao">Tração</option>
+            </select>
+          </div>
+          <div><label style={S.label}>Tipo de estaca</label>
+            <select value={tipoEstaca} onChange={e=>setTipoEstaca(e.target.value)}>
+              {TIPOS_ESTACA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
         </div>
