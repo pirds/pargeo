@@ -18,6 +18,16 @@ const S = {
   warn: { color:'var(--error)', fontWeight:700 },
 };
 
+const TIPOS_ESTACA = [
+  { value: 'helice_continua',  label: 'Hélice Contínua' },
+  { value: 'franki',           label: 'Franki' },
+  { value: 'premoldada',       label: 'Pré-moldada (Concreto)' },
+  { value: 'escavada_sem_rev', label: 'Escavada sem Revestimento' },
+  { value: 'escavada_com_rev', label: 'Escavada c/ Revestimento ou Lama' },
+  { value: 'raiz',             label: 'Raiz' },
+  { value: 'hollow_auger',     label: 'Hollow Auger' },
+];
+
 const NH_LABELS = {
   areia_fofa:        'Areia fofa',
   areia_media:       'Areia medianamente compacta',
@@ -55,13 +65,18 @@ function AbaA({ session, obraAtiva }) {
   const [f, setF] = useState({
     da:35, db:45, comprimento:12, Nc:50, atrito:0, Nt:0, M:100, H:2,
     fck:250, phi_long:10, n_barras:8, phi_est:8, cobrimento:5,
-    tipo_solo:'areia_media', situacao:'seca', nome:'',
+    tipo_solo:'areia_media', situacao:'seca', tipoEstaca:'helice_continua', nome:'',
   });
   const [res, setRes] = useState(null);
 
   useEffect(() => {
     const dim = localStorage.getItem('estaca_dimensao');
-    if (dim) setF(p => ({ ...p, db: Number(dim) / 10 }));
+    const tipo = localStorage.getItem('estaca_tipo_estaca');
+    setF(p => ({
+      ...p,
+      ...(dim ? { db: Number(dim) / 10 } : {}),
+      ...(tipo ? { tipoEstaca: tipo } : {}),
+    }));
   }, []);
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -117,7 +132,7 @@ function AbaA({ session, obraAtiva }) {
           </div>
           <Field label="Cobrimento" k="cobrimento" unit="cm" value={f.cobrimento} onChange={set}/>
         </div>
-        <div style={{...S.row, gridTemplateColumns:'2fr 1fr'}}>
+        <div style={{...S.row, gridTemplateColumns:'2fr 1fr 2fr'}}>
           <div style={S.field}>
             <label style={S.label}>Tipo de solo (Miche)</label>
             <select value={f.tipo_solo} onChange={e => set('tipo_solo', e.target.value)}>
@@ -129,6 +144,12 @@ function AbaA({ session, obraAtiva }) {
             <select value={f.situacao} onChange={e => set('situacao', e.target.value)}>
               <option value="seca">Seca</option>
               <option value="submersa">Submersa</option>
+            </select>
+          </div>
+          <div style={S.field}>
+            <label style={S.label}>Tipo de estaca</label>
+            <select value={f.tipoEstaca} onChange={e => set('tipoEstaca', e.target.value)}>
+              {TIPOS_ESTACA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
         </div>
