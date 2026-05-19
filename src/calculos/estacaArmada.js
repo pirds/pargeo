@@ -134,7 +134,7 @@ export function calcularEstacaArmada(params) {
   const n_barras_calc = Math.max(4, Math.ceil(As_gov / area_barra_long));
   const n_barras_min  = n_barras_calc;
   // As fornecido = mínimo de barras necessário × área (garante que sempre mostra valor coerente)
-  const As_fornecido = n_barras * area_barra_long;
+  const As_fornecido = n_barras_calc * area_barra_long;
   console.log('[estacaArmada] As_gov', As_gov.toFixed(4),
     'n_barras_min', n_barras_min,
     'area_barra_long', area_barra_long.toFixed(4),
