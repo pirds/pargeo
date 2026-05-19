@@ -194,25 +194,33 @@ export function calcularEstacaArmada(params) {
 }
 
 // ── COMPATIBILIDADE ──────────────────────────────────────────
-// Mantém exports usados pelo componente (AbaB e selects)
 export const NH_OPTIONS = Object.keys(NH_TABLE);
 export const PHI_OPTIONS = Object.keys(PESO_BARRA).map(Number);
 
-export function calcularArmaduraSimples({ carga, D, atrito_lateral, comprimento }) {
-  const area = Math.PI * Math.pow(D, 2) / 4;
-  const tensao = carga / area;
-  const carga_excedente = carga - 50 * area;
-  const necessita = tensao > 50;
-  let comp_armar = 0;
-  if (necessita && comprimento > 0) {
-    comp_armar = (atrito_lateral / comprimento) * carga_excedente;
-    comp_armar = Math.max(0, comp_armar);
+export function calcularCompressaoSimplificada({ Nc, db, atrito_lateral, comprimento }) {
+  const Ac = (Math.PI * db * db) / 4;
+  const tensao = (Nc * 1000) / Ac;
+
+  if (tensao <= 50) {
+    return { tensao, Ac, necessita_armacao: false, comp_armar: 0, msg: 'Não necessita armação (tensão ≤ 50 kg/cm²)' };
   }
+
+  const Nc_kg = Nc * 1000;
+  const carga_excedente = Nc_kg - 50 * Ac;
+  const atrito_kg = atrito_lateral * 1000;
+  const comp_armar_raw = atrito_kg > 0 ? (comprimento / atrito_kg) * carga_excedente : comprimento;
+  const comp_armar = Math.min(comp_armar_raw, comprimento);
+
   return {
-    area: +area.toFixed(2),
-    tensao: +tensao.toFixed(2),
-    necessita,
-    comp_armar: +comp_armar.toFixed(2),
-    aviso_excede: necessita && comp_armar > comprimento,
+    tensao, Ac, carga_excedente,
+    necessita_armacao: true,
+    comp_armar,
+    msg: comp_armar_raw > comprimento
+      ? 'Comprimento a armar > comprimento total. Rever dimensionamento!'
+      : `Armar os primeiros ${comp_armar.toFixed(2)} m`,
   };
+}
+
+export function calcularArmaduraSimples({ carga, D, atrito_lateral, comprimento }) {
+  return calcularCompressaoSimplificada({ Nc: carga / 1000, db: D, atrito_lateral: atrito_lateral / 1000, comprimento });
 }

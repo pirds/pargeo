@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { calcularEstacaArmada, calcularArmaduraSimples, NH_TABLE, PHI_OPTIONS } from '../calculos/estacaArmada';
+import { calcularEstacaArmada, calcularCompressaoSimplificada, NH_TABLE, PHI_OPTIONS } from '../calculos/estacaArmada';
 import { getCalculosArmada, setCalculosArmada } from '../storage';
 import { Save, Info } from 'lucide-react';
 
@@ -258,21 +258,26 @@ function AbaA({ session, obraAtiva }) {
 
 // ── ABA B ─────────────────────────────────────────────────────────
 function AbaB() {
-  const [f, setF] = useState({ carga:50000, D:45, atrito_lateral:0, comprimento:12 });
+  const [f, setF] = useState({ Nc: 50, db: 45, atrito_lateral: 0, comprimento: 12 });
   const [res, setRes] = useState(null);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const calcular = () => {
+    const num = Object.fromEntries(Object.entries(f).map(([k, v]) => [k, Number(v)]));
+    setRes(calcularCompressaoSimplificada(num));
+  };
 
   return (
     <div>
       <div style={S.card}>
         <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,margin:'0 0 16px',color:'var(--accent)'}}>Compressão simplificada</h3>
         <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
-          <Field label="Carga de compressão" k="carga" unit="kg" value={f.carga} onChange={set}/>
-          <Field label="Diâmetro da estaca" k="D" unit="cm" value={f.D} onChange={set}/>
-          <Field label="Carga adm lateral (atrito)" k="atrito_lateral" unit="kg" value={f.atrito_lateral} onChange={set}/>
+          <Field label="Carga de compressão (Nc)" k="Nc" unit="tf" value={f.Nc} onChange={set}/>
+          <Field label="Diâmetro da estaca (db)" k="db" unit="cm" value={f.db} onChange={set}/>
+          <Field label="Atrito lateral admissível" k="atrito_lateral" unit="tf" value={f.atrito_lateral} onChange={set}/>
           <Field label="Comprimento total" k="comprimento" unit="m" value={f.comprimento} onChange={set}/>
         </div>
-        <button style={{...S.btn('accent'), background:'var(--accent)', color:'#0f1923', border:'none', padding:'10px 24px'}} onClick={() => setRes(calcularArmaduraSimples({ ...f, ...Object.fromEntries(Object.entries(f).map(([k,v])=>[k,Number(v)])) }))}>
+        <button style={{...S.btn('accent'), background:'var(--accent)', color:'#0f1923', border:'none', padding:'10px 24px'}} onClick={calcular}>
           Calcular
         </button>
       </div>
@@ -280,22 +285,32 @@ function AbaB() {
       {res && (
         <div style={S.card}>
           <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,margin:'0 0 12px',color:'var(--text-primary)'}}>Resultado</h3>
-          <table style={{width:'100%',borderCollapse:'collapse',maxWidth:420}}>
+          <table style={{width:'100%',borderCollapse:'collapse',maxWidth:480}}>
             <tbody>
-              <tr><td style={S.tdl}>Área da seção</td><td style={S.td}>{res.area} cm²</td></tr>
-              <tr><td style={S.tdl}>Tensão na seção</td><td style={S.td}>{res.tensao} kg/cm²</td></tr>
+              <tr><td style={S.tdl}>Área da seção (Ac)</td><td style={S.td}>{res.Ac?.toFixed(2)} cm²</td></tr>
+              <tr><td style={S.tdl}>Tensão na seção</td><td style={S.td}>{res.tensao?.toFixed(2)} kg/cm²</td></tr>
               <tr>
                 <td style={S.tdl}>Necessita armação?</td>
-                <td style={{...S.td, ...(res.necessita ? S.warn : S.ok)}}>{res.necessita ? 'Sim' : 'Não — tensão ≤ 50 kg/cm²'}</td>
+                <td style={{...S.td, ...(res.necessita_armacao ? S.warn : S.ok)}}>
+                  {res.necessita_armacao ? 'Sim' : 'Não — tensão ≤ 50 kg/cm²'}
+                </td>
               </tr>
-              {res.necessita && (
+              {res.necessita_armacao && <>
+                <tr>
+                  <td style={S.tdl}>Carga excedente</td>
+                  <td style={S.td}>{res.carga_excedente?.toFixed(2)} kg</td>
+                </tr>
                 <tr>
                   <td style={S.tdl}>Comprimento mínimo a armar</td>
-                  <td style={{...S.td, color:'var(--accent)', fontWeight:700}}>{res.comp_armar} m
-                    {res.aviso_excede && <span style={{color:'var(--error)',fontSize:12,marginLeft:8}}>⚠️ Excede comprimento total!</span>}
-                  </td>
+                  <td style={{...S.td, color:'var(--accent)', fontWeight:700}}>{res.comp_armar?.toFixed(2)} m</td>
                 </tr>
-              )}
+              </>}
+              <tr>
+                <td colSpan={2} style={{...S.tdl, fontStyle:'italic', paddingTop:10,
+                  color: res.msg?.includes('Rever') ? 'var(--error)' : 'var(--success)'}}>
+                  {res.msg}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
