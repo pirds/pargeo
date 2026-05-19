@@ -108,15 +108,17 @@ export function calcularEstacaArmada(params) {
   const As_gov = Math.max(As_comp, As_trac, As_mom);
   const area_barra_long = ((phi_long * phi_long) / 4) * Math.PI / 100; // DA18 (cm²)
   const area_barra_est  = ((phi_est  * phi_est)  / 4) * Math.PI / 100; // DB18 (cm²)
-  const n_barras_calc = Math.max(4, Math.ceil(As_gov / area_barra_long));
-  const n_barras_min  = n_barras_calc;
-  const As_fornecido  = n_barras_calc * area_barra_long;
+  const CX34 = As_gov / area_barra_long;
+  const CX35 = Math.round(CX34);                          // ROUND — alimenta CZ32 (cortante)
+  const n_barras_adotado = Math.max(4, Math.ceil(CX34));  // CEIL  — n_barras exibido
+  const n_barras_min  = n_barras_adotado;
+  const As_fornecido  = n_barras_adotado * area_barra_long;
 
   // ── AS DE CORTANTE ────────────────────────────────────────
   const DC7  = 420;
   const DB35 = Math.pow(db * 0.707106781, 2);
   const DB36 = H > 0 ? ((1.4 * H) / DB35) * 100 : 0;
-  const CZ32 = n_barras_calc / 3 * 2;
+  const CZ32 = CX35 / 3 * 2;
   const CZ33 = Math.round(CZ32);
   const CZ34 = (CZ33 * area_barra_long) / Ac;
   const CZ35 = CZ34 <= 0.001 ? 0.07 : 0;
@@ -166,7 +168,7 @@ export function calcularEstacaArmada(params) {
   // ── QUANTITATIVOS ─────────────────────────────────────────
   const vol_concreto = Ac * comprimento / 10000;                          // m³
   const peso_linear_long = area_barra_long * 0.785;                       // kg/m (DE18)
-  const peso_aco_long    = comprimento * n_barras_calc * peso_linear_long; // kg
+  const peso_aco_long    = comprimento * n_barras_adotado * peso_linear_long; // kg
   const perim_estribo    = Math.PI * (db / 100 - 2 * (cobrimento / 100)); // m
   const n_estribos       = Math.ceil((comprimento * 100) / espacamento_estribos);
   const peso_linear_est  = area_barra_est * 0.785;                        // kg/m
@@ -184,7 +186,7 @@ export function calcularEstacaArmada(params) {
     As_cort_calc, As_min_cort, As_cort,
     As_gov,
     // Barras
-    n_barras_calc, n_barras_min, As_fornecido, area_barra: area_barra_long,
+    n_barras_calc: n_barras_adotado, n_barras_min, As_fornecido, area_barra: area_barra_long,
     // Estribos
     DC36, espacamento_estribos,
     // Miche
