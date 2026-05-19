@@ -58,7 +58,6 @@ export function calcularEstacaArmada(params) {
     H,            // carga horizontal (tf)
     fck,          // resistência característica (kg/cm²)
     phi_long,     // diâmetro barra longitudinal (mm)
-    n_barras,     // número de barras longitudinais
     phi_est,      // diâmetro dos estribos (mm)
     cobrimento,   // cobrimento nominal (cm)
     tipo_solo,    // chave do NH_TABLE
@@ -105,41 +104,30 @@ export function calcularEstacaArmada(params) {
   const As_min_mom   = Ac * 0.0015;                        // DK48
   const As_mom       = Math.max(As_mom_calc, As_min_mom);
 
-  // ── AS DE CORTANTE ────────────────────────────────────────
-  // DC32 = (100/DC7) × (0.707106781×db) × DB38
-  // DD32 = 0.14 × 0.707106781 × db  (As min cortante)
-  // DB35 = (db×0.707106781)²
-  // DB36 = ((1.4×H)/DB35)×100  (se M>0)
-  // CZ38 ≈ 0.077 (coef de momento, calculado via da/db)
-  // DB32 = CZ38×sqrt(Nt) — para Nt=0, DB32=0
-  // DB38 = (1.15×DB36) - DB32
-  const DC7  = 420;  // fyd CA-50
-  const DB35 = Math.pow(db * 0.707106781, 2);
-  const DB36 = H > 0 ? ((1.4 * H) / DB35) * 100 : 0;
-  const CZ34 = n_barras * ((phi_long * phi_long) / 4) * Math.PI / 100 / Ac;
-  const CZ38 = CZ34 <= 0.001 ? 0.07 :
-               CZ34 >= 0.015 ? 0.14 :
-               ((CZ34 - 0.001) * 5) + 0.07;
-  const DB32 = CZ38 * Math.sqrt(phi_long);  // phi_long em mm
-  const DB38 = H > 0 ? (1.15 * DB36) - DB32 : 0;
-  const As_cort_calc = DB38 > 0 ? (100 / DC7) * (0.707106781 * db) * DB38 : 0;
-  const As_min_cort  = 0.14 * 0.707106781 * db;           // DD32
-  const As_cort      = Math.max(As_cort_calc, As_min_cort);
-
   // ── NÚMERO DE BARRAS LONGITUDINAIS ────────────────────────
-  // As governante = máximo entre comp, trac, momento
   const As_gov = Math.max(As_comp, As_trac, As_mom);
   const area_barra_long = ((phi_long * phi_long) / 4) * Math.PI / 100; // DA18 (cm²)
   const area_barra_est  = ((phi_est  * phi_est)  / 4) * Math.PI / 100; // DB18 (cm²)
   const n_barras_calc = Math.max(4, Math.ceil(As_gov / area_barra_long));
   const n_barras_min  = n_barras_calc;
-  // As fornecido = mínimo de barras necessário × área (garante que sempre mostra valor coerente)
-  const As_fornecido = n_barras_calc * area_barra_long;
-  console.log('[estacaArmada] As_gov', As_gov.toFixed(4),
-    'n_barras_min', n_barras_min,
-    'area_barra_long', area_barra_long.toFixed(4),
-    'n_barras_usuario', n_barras,
-    'As_fornecido', As_fornecido.toFixed(4));
+  const As_fornecido  = n_barras_calc * area_barra_long;
+
+  // ── AS DE CORTANTE ────────────────────────────────────────
+  const DC7  = 420;
+  const DB35 = Math.pow(db * 0.707106781, 2);
+  const DB36 = H > 0 ? ((1.4 * H) / DB35) * 100 : 0;
+  const CZ32 = n_barras_calc / 3 * 2;
+  const CZ33 = Math.round(CZ32);
+  const CZ34 = (CZ33 * area_barra_long) / Ac;
+  const CZ35 = CZ34 <= 0.001 ? 0.07 : 0;
+  const CZ36 = CZ34 >= 0.015 ? 0.14 : 0;
+  const CZ37 = (CZ35 + CZ36 === 0) ? ((CZ34 - 0.001) * 5) + 0.07 : 0;
+  const CZ38 = CZ35 + CZ36 + CZ37;
+  const DB32 = CZ38 * Math.sqrt(phi_long);
+  const DB38 = H > 0 ? (1.15 * DB36) - DB32 : 0;
+  const As_cort_calc = DB38 > 0 ? (100 / DC7) * (0.707106781 * db) * DB38 : 0;
+  const As_min_cort  = 0.14 * 0.707106781 * db;
+  const As_cort      = Math.max(As_cort_calc, As_min_cort);
 
   // ── ESPAÇAMENTO DE ESTRIBOS ──────────────────────────────
   // DC35 = As_min_cort / area_barra_est (estribo, não longitudinal)
@@ -178,7 +166,7 @@ export function calcularEstacaArmada(params) {
   // ── QUANTITATIVOS ─────────────────────────────────────────
   const vol_concreto = Ac * comprimento / 10000;                          // m³
   const peso_linear_long = area_barra_long * 0.785;                       // kg/m (DE18)
-  const peso_aco_long    = comprimento * n_barras * peso_linear_long;     // kg
+  const peso_aco_long    = comprimento * n_barras_calc * peso_linear_long; // kg
   const perim_estribo    = Math.PI * (db / 100 - 2 * (cobrimento / 100)); // m
   const n_estribos       = Math.ceil((comprimento * 100) / espacamento_estribos);
   const peso_linear_est  = area_barra_est * 0.785;                        // kg/m

@@ -68,7 +68,7 @@ function Row({ label, calc, min, usado, nBarras, phi, asFornecido, asGov }) {
 function AbaA({ session, obraAtiva }) {
   const [f, setF] = useState({
     db:45, comprimento:12, Nc:50, atrito:0, Nt:0, M:100, H:2,
-    fck:250, phi_long:10, n_barras:8, phi_est:8, cobrimento:5,
+    fck:250, phi_long:10, phi_est:8, cobrimento:5,
     tipo_solo:'areia_media', situacao:'seca', tipoEstaca:'helice_continua', nome:'',
   });
   const [res, setRes] = useState(null);
@@ -120,14 +120,13 @@ function AbaA({ session, obraAtiva }) {
           <Field label="Carga horiz. H" k="H" unit="tf" value={f.H} onChange={set}/>
           <Field label="fck" k="fck" unit="kg/cm²" value={f.fck} onChange={set}/>
         </div>
-        <div style={{...S.row, gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr'}}>
+        <div style={{...S.row, gridTemplateColumns:'1fr 1fr 1fr 1fr'}}>
           <div style={S.field}>
             <label style={S.label}>Ø long. (mm)</label>
             <select value={f.phi_long} onChange={e => set('phi_long', e.target.value)}>
               {PHI_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-          <Field label="Nº barras" k="n_barras" value={f.n_barras} onChange={set}/>
           <div style={S.field}>
             <label style={S.label}>Ø estribo (mm)</label>
             <select value={f.phi_est} onChange={e => set('phi_est', e.target.value)}>
