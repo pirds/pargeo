@@ -50,13 +50,25 @@ function DiagramaSVG({ D, H_aterro, H_comp }) {
   );
 }
 
+function Field({ label, k, unit, value, onChange }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <label style={{ display:'block', fontSize:12, color:'var(--text-secondary)', marginBottom:4, fontWeight:500, textTransform:'uppercase', letterSpacing:0.5 }}>
+        {label}{unit && <span style={{textTransform:'none',marginLeft:4,color:'var(--text-muted)'}}>({unit})</span>}
+      </label>
+      <input type="number" step="0.01" value={value} onChange={e => onChange(k, e.target.value)} />
+    </div>
+  );
+}
+
 export default function AtritoNegativo({ session, obraAtiva }) {
-  const [f, setF] = useState({ D:25, H_aterro:1.8, gamma_aterro:1.8, H_comp:6, gamma_comp:1.9, phi:15, c:2.5, NA:0.75, nome:'' });
+  const [f, setF] = useState({ D:25, H_aterro:1.8, gamma_aterro:1.8, H_comp:6, gamma_seco:1.9, phi:15, c:2.5, NA:0.75, nome:'' });
   const [res, setRes] = useState(null);
-  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const set = (k, v) => setF(p => ({ ...p, [k]: parseFloat(v) || 0 }));
 
   const calcular = () => {
-    const p = Object.fromEntries(Object.entries(f).map(([k,v]) => [k, isNaN(v) ? v : Number(v)]));
+    const p = Object.fromEntries(Object.entries(f).map(([k,v]) => [k, typeof v === 'string' ? parseFloat(v) || 0 : v]));
+    console.log('Beer inputs:', { D: p.D, H_aterro: p.H_aterro, gamma_aterro: p.gamma_aterro, H_comp: p.H_comp, gamma_seco: p.gamma_seco, phi: p.phi, NA: p.NA });
     const conv = calcularAtritoConvencional(p);
     const beer = calcularAtritoBeer(p);
     setRes({ conv, beer });
@@ -71,14 +83,7 @@ export default function AtritoNegativo({ session, obraAtiva }) {
     alert('Salvo!');
   };
 
-  const preencherSolo = (solo) => setF(p => ({ ...p, gamma_comp: solo.g, phi: solo.phi, c: solo.c }));
-
-  const Field = ({ label, k, unit }) => (
-    <div style={S.field}>
-      <label style={S.label}>{label}{unit && <span style={{textTransform:'none',marginLeft:4,color:'var(--text-muted)'}}>({unit})</span>}</label>
-      <input type="number" step="0.01" value={f[k]} onChange={e => set(k, e.target.value)} />
-    </div>
-  );
+  const preencherSolo = (solo) => setF(p => ({ ...p, gamma_seco: solo.g, phi: solo.phi, c: solo.c }));
 
   return (
     <div style={{padding:28}}>
@@ -90,20 +95,20 @@ export default function AtritoNegativo({ session, obraAtiva }) {
           <div style={S.card}>
             <h3 style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,margin:'0 0 16px',color:'var(--accent)'}}>Dados de entrada</h3>
             <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
-              <Field label="Diâmetro da estaca" k="D" unit="cm"/>
-              <Field label="Nível d'água" k="NA" unit="m"/>
+              <Field label="Diâmetro da estaca" k="D" unit="cm" value={f.D} onChange={set}/>
+              <Field label="Nível d'água" k="NA" unit="m" value={f.NA} onChange={set}/>
             </div>
             <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
-              <Field label="Altura camada aterro" k="H_aterro" unit="m"/>
-              <Field label="Peso esp. aterro (γ)" k="gamma_aterro" unit="t/m³"/>
+              <Field label="Altura camada aterro" k="H_aterro" unit="m" value={f.H_aterro} onChange={set}/>
+              <Field label="Peso esp. aterro (γ)" k="gamma_aterro" unit="t/m³" value={f.gamma_aterro} onChange={set}/>
             </div>
             <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
-              <Field label="Altura camada compressível" k="H_comp" unit="m"/>
-              <Field label="Peso esp. seco (γ)" k="gamma_comp" unit="t/m³"/>
+              <Field label="Altura camada compressível" k="H_comp" unit="m" value={f.H_comp} onChange={set}/>
+              <Field label="Peso esp. seco (γ)" k="gamma_seco" unit="t/m³" value={f.gamma_seco} onChange={set}/>
             </div>
             <div style={{...S.row, gridTemplateColumns:'1fr 1fr'}}>
-              <Field label="Ângulo atrito interno (φ)" k="phi" unit="°"/>
-              <Field label="Coesão (c)" k="c" unit="t/m²"/>
+              <Field label="Ângulo atrito interno (φ)" k="phi" unit="°" value={f.phi} onChange={set}/>
+              <Field label="Coesão (c)" k="c" unit="t/m²" value={f.c} onChange={set}/>
             </div>
             <div style={{display:'flex',gap:10,marginTop:4}}>
               <button style={{padding:'10px 28px',borderRadius:8,border:'none',background:'var(--accent)',color:'#0f1923',fontWeight:700,fontSize:15}} onClick={calcular}>Calcular</button>
